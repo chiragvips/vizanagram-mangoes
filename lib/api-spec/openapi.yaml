@@ -1,0 +1,28 @@
+openapi: 3.1.0
+info:
+  title: Workspace API
+  version: 1.0.0
+paths:
+  /api/health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+components:
+  schemas:
+    HealthCheckResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string

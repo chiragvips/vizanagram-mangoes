@@ -1,0 +1,26 @@
+{
+  "name": "@workspace/api-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_OPTIONS='--conditions=workspace' tsx watch src/index.ts",
+    "build": "node esbuild.config.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/api-zod": "workspace:*",
+    "@workspace/db": "workspace:*",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.3",
+    "@types/node": "catalog:",
+    "esbuild": "0.27.3",
+    "tsx": "catalog:",
+    "typescript": "~5.9.2"
+  }
+}
