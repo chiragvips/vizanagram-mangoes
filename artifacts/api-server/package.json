@@ -12,7 +12,10 @@
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "cors": "^2.8.5",
+    "drizzle-kit": "^0.31.9",
+    "drizzle-orm": "catalog:",
     "express": "^5.1.0",
+    "pg": "^8.20.0",
     "zod": "catalog:"
   },
   "devDependencies": {

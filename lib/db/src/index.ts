@@ -11,3 +11,4 @@ if (!connectionString) {
 export const pool = new Pool({ connectionString });
 export const db = drizzle(pool, { schema });
 export { schema };
+export * from "./schema/index.js";
