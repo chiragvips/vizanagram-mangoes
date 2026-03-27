@@ -1,0 +1,98 @@
+feature_enhancements:
+  percentage_calculations:
+    add_to:
+      - subtotal_section
+      - grand_total_section
+    formula: "(individual_qty / total_qty) * 100"
+    rules:
+      - use_existing_row_level_logic: true
+      - decimal_precision: 2
+    remove_from:
+      - amount_section
+
+  dynamic_calculation_settings:
+    enable_dynamic_fields: true
+    new_fields:
+      - p
+      - t
+    behavior:
+      - same_as_existing:
+          - station_per_box
+          - truck_fare
+    requirements:
+      - globally_configurable: true
+      - ui_support:
+          - add
+          - edit
+          - delete
+      - apply_in_all_calculations: true
+      - persistent_storage: true
+
+  multi_select_delete:
+    selection:
+      - row_checkbox: true
+      - select_all_checkbox: true
+    actions:
+      - bulk_delete: true
+      - confirmation_required: true
+    performance:
+      - handle_large_data: true
+    ui_update: true
+
+  multi_select_filter:
+    field: mark
+    type: multi_select_dropdown
+    behavior:
+      - match_any_selected: true
+    examples:
+      - NGK
+      - GXM
+    requirements:
+      - no_duplicates: true
+      - accurate_filtering: true
+      - show_selected_marks_in_ui: true
+
+  subtotals_per_date:
+    group_by: date
+    existing:
+      - total_qty
+    add:
+      - qty1_total
+      - qty2_total
+      - qty3_total
+    rules:
+      - dynamic_update: true
+      - accurate_per_group: true
+
+  grand_total:
+    add_percentage: true
+    calculation:
+      - based_on_overall_total_qty: true
+      - same_as_entry_level_logic: true
+    formatting:
+      - decimal_precision: 2
+
+  amount_section:
+    remove_percentage: true
+    display:
+      - numeric_only: true
+
+  dark_mode:
+    fix_toggle: true
+    ensure:
+      - proper_switching: true
+      - text_visibility: true
+      - background_consistency: true
+      - component_styling:
+          - buttons
+          - tables
+          - inputs
+      - no_ui_breakage: true
+      - consistent_theme_across_app: true
+
+  general_requirements:
+    - no_breaking_changes: true
+    - maintain_ui_consistency: true
+    - accurate_calculations: true
+    - optimized_performance_for_large_data: true
+    - clean_modular_code: true
