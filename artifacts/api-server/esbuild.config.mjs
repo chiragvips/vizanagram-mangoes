@@ -8,6 +8,7 @@ await build({
   outfile: "dist/index.cjs",
   external: [],
   packages: "bundle",
+  conditions: ["workspace"],
   banner: {
     js: `"use strict";`,
   },

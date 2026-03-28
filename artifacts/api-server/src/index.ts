@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { app } from "./app.js";
+import express from "express";
+import path from "path";
 
 const PORT = process.env.PORT ?? 3000;
 
@@ -56,6 +58,12 @@ async function main() {
   } catch (err) {
     console.error("Schema setup error:", err);
   }
+
+  const staticDir = path.join(process.cwd(), "artifacts/shop-app/dist/public");
+  app.use(express.static(staticDir));
+  app.get("*", (_req: any, res: any) => {
+    res.sendFile(path.join(staticDir, "index.html"));
+  });
 
   app.listen(PORT, () => {
     console.log(`API server listening on port ${PORT}`);

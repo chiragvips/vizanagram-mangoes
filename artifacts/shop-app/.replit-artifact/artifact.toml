@@ -18,13 +18,8 @@ localPort = 22696
 run = "pnpm --filter @workspace/shop-app run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/shop-app", "run", "build" ]
-publicDir = "artifacts/shop-app/dist/public"
-serve = "static"
-
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+build = [ "sh", "-c", "pnpm --filter @workspace/shop-app run build && pnpm --filter @workspace/api-server run build" ]
+run = [ "node", "artifacts/api-server/dist/index.cjs" ]
 
 [services.env]
 PORT = "22696"
