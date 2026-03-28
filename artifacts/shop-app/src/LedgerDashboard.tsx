@@ -22,8 +22,16 @@ export default function LedgerDashboard({ settings }: Props) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [payFilter, setPayFilter] = useState<"all" | "paid" | "unpaid">("all");
+  const [markFilter, setMarkFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [modal, setModal] = useState<{ mode: "new" | "edit"; entry?: LedgerEntry } | null>(null);
+
+  // Collect all unique marks for the dropdown filter
+  const allMarks = useMemo(() => {
+    const marks = new Set<string>();
+    entries.forEach(e => (e.rows ?? []).forEach(r => { if (r.mark) marks.add(r.mark); }));
+    return Array.from(marks).sort();
+  }, [entries]);
 
   const createMut = useMutation({
     mutationFn: (d: any) => createEntry(d),
@@ -51,6 +59,10 @@ export default function LedgerDashboard({ settings }: Props) {
       if (fromDate && e.date < fromDate) return false;
       if (toDate && e.date > toDate) return false;
       if (payFilter !== "all" && e.payment_status !== payFilter) return false;
+      if (markFilter !== "all") {
+        const hasMatch = (e.rows ?? []).some(r => r.mark === markFilter);
+        if (!hasMatch) return false;
+      }
       if (search) {
         const s = search.toLowerCase();
         const hasMatch = (e.rows ?? []).some(r => r.mark?.toLowerCase().includes(s));
@@ -58,7 +70,7 @@ export default function LedgerDashboard({ settings }: Props) {
       }
       return true;
     });
-  }, [entries, fromDate, toDate, payFilter, search]);
+  }, [entries, fromDate, toDate, payFilter, markFilter, search]);
 
   function toggleSelect(id: number) {
     setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -142,6 +154,20 @@ export default function LedgerDashboard({ settings }: Props) {
     doc.text(`Veh: ${allTrucks.slice(0, 3).join(", ") || "—"}`, 10, y);
     doc.text(`Date: ${today} (Purchasing)`, W - 10, y, { align: "right" });
     y += 4;
+
+    // DESCRIPTIONS (from entries)
+    const descriptions = filtered.map(e => e.description).filter(Boolean);
+    if (descriptions.length > 0) {
+      y += 3;
+      doc.setFontSize(8.5); doc.setFont("helvetica", "italic");
+      descriptions.forEach(desc => {
+        if (y > 270) { doc.addPage(); y = 15; }
+        doc.text(`Note: ${desc}`, 10, y);
+        y += 4;
+      });
+      doc.setFont("helvetica", "normal");
+    }
+
     doc.setFontSize(7); doc.text(sep70, W / 2, y, { align: "center" }); y += 5;
 
     // TABLE HEADER
@@ -282,6 +308,14 @@ export default function LedgerDashboard({ settings }: Props) {
               className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500" />
           </div>
           <div>
+            <label className="text-xs text-gray-500 block mb-1">Mark</label>
+            <select value={markFilter} onChange={e => setMarkFilter(e.target.value)}
+              className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500 min-w-[120px]">
+              <option value="all">All Marks</option>
+              {allMarks.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
             <label className="text-xs text-gray-500 block mb-1">Payment</label>
             <div className="flex gap-1">
               {(["all","paid","unpaid"] as const).map(v => (
@@ -353,20 +387,25 @@ export default function LedgerDashboard({ settings }: Props) {
               });
 
               return [
-                ...dayEntries.map(entry =>
-                  (entry.rows ?? []).map(row => {
+                ...dayEntries.map(entry => {
+                  const entryRows = entry.rows ?? [];
+                  return entryRows.map((row, rowIdx) => {
+                    const isFirstRow = rowIdx === 0;
+                    const rowCount = entryRows.length;
                     const c = calcRow(row as any, settings);
                     const totalQty = Number(row.total_qty) || 0;
                     const q1pct = totalQty > 0 ? (Number(row.qty1)/totalQty*100).toFixed(1) : "0";
                     const q2pct = totalQty > 0 ? (Number(row.qty2)/totalQty*100).toFixed(1) : "0";
                     const q3pct = totalQty > 0 ? (Number(row.qty3)/totalQty*100).toFixed(1) : "0";
                     return (
-                      <tr key={`${entry.id}-${row.id}`} className="border-t border-gray-100 dark:border-[#1c2333] hover:bg-gray-50 dark:hover:bg-[#161b22] transition">
+                      <tr key={`${entry.id}-${row.id}`} className={`border-t hover:bg-gray-50 dark:hover:bg-[#161b22] transition ${isFirstRow ? "border-gray-200 dark:border-[#30363d]" : "border-gray-100 dark:border-[#1c2333]"} ${!isFirstRow ? "bg-gray-50/30 dark:bg-[#0d1117]/50" : ""}`}>
                         <td className={tdCls}>
-                          <input type="checkbox" checked={selected.has(entry.id)} onChange={() => toggleSelect(entry.id)}
-                            className="rounded border-gray-300 dark:border-gray-600" />
+                          {isFirstRow && <input type="checkbox" checked={selected.has(entry.id)} onChange={() => toggleSelect(entry.id)}
+                            className="rounded border-gray-300 dark:border-gray-600" />}
                         </td>
-                        <td className={tdCls + " text-gray-800 dark:text-gray-200"}>{formatDateDMY(date)}</td>
+                        <td className={tdCls + " text-gray-800 dark:text-gray-200"}>
+                          {isFirstRow ? formatDateDMY(date) : <span className="text-gray-300 dark:text-gray-600 text-[10px]">#{entry.id}</span>}
+                        </td>
                         <td className={tdCls}>
                           <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 px-2 py-0.5 rounded text-[10px] font-bold">{row.mark}</span>
                         </td>
@@ -420,29 +459,35 @@ export default function LedgerDashboard({ settings }: Props) {
                           <div className="text-[10px]">{fmtINR(c.total_net_per_box, 2)}/box</div>
                         </td>
                         <td className={tdCls}>
-                          <select value={entry.payment_status}
-                            onChange={e => payMut.mutate({ id: entry.id, status: e.target.value })}
-                            className={`text-xs px-2 py-1 rounded border focus:outline-none ${entry.payment_status==="paid" ? "bg-green-50 dark:bg-green-900/40 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300" : "bg-purple-50 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300"}`}>
-                            <option value="unpaid">Unpaid</option>
-                            <option value="paid">Paid</option>
-                          </select>
+                          {isFirstRow ? (
+                            <select value={entry.payment_status}
+                              onChange={e => payMut.mutate({ id: entry.id, status: e.target.value })}
+                              className={`text-xs px-2 py-1 rounded border focus:outline-none ${entry.payment_status==="paid" ? "bg-green-50 dark:bg-green-900/40 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300" : "bg-purple-50 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300"}`}>
+                              <option value="unpaid">Unpaid</option>
+                              <option value="paid">Paid</option>
+                            </select>
+                          ) : (
+                            <span className="text-[10px] text-gray-400 dark:text-gray-600">{rowCount} rows</span>
+                          )}
                         </td>
                         <td className={tdCls}>
-                          <div className="flex gap-1">
-                            <button onClick={() => setModal({ mode: "edit", entry })}
-                              className="p-1.5 rounded bg-gray-100 dark:bg-[#1c2333] hover:bg-blue-100 dark:hover:bg-blue-900/40 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition">
-                              <Pencil size={12} />
-                            </button>
-                            <button onClick={() => { if (confirm("Delete this entry?")) deleteMut.mutate(entry.id); }}
-                              className="p-1.5 rounded bg-gray-100 dark:bg-[#1c2333] hover:bg-red-100 dark:hover:bg-red-900/40 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition">
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
+                          {isFirstRow && (
+                            <div className="flex gap-1">
+                              <button onClick={() => setModal({ mode: "edit", entry })}
+                                className="p-1.5 rounded bg-gray-100 dark:bg-[#1c2333] hover:bg-blue-100 dark:hover:bg-blue-900/40 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition">
+                                <Pencil size={12} />
+                              </button>
+                              <button onClick={() => { if (confirm("Delete this entry?")) deleteMut.mutate(entry.id); }}
+                                className="p-1.5 rounded bg-gray-100 dark:bg-[#1c2333] hover:bg-red-100 dark:hover:bg-red-900/40 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition">
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
-                  })
-                ),
+                  });
+                }),
                 <tr key={`subtotal-${date}`} className="border-t border-gray-300 dark:border-[#30363d] bg-blue-50 dark:bg-[#1a1f2e]">
                   <td></td>
                   <td colSpan={3} className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400 font-semibold">{formatDateDMY(date)} TOTALS</td>
@@ -453,17 +498,17 @@ export default function LedgerDashboard({ settings }: Props) {
                   <td className="px-2 py-2 text-xs text-right text-gray-700 dark:text-gray-300 font-semibold">{fmtINR(dc.qty3,0)}<div className="text-[10px] text-gray-400">{dc.qty>0?(dc.qty3/dc.qty*100).toFixed(1):0}%</div></td>
                   <td></td>
                   <td className="px-2 py-2 text-xs text-right text-gray-900 dark:text-white font-bold">{fmtINR(dc.qty,0)}</td>
-                  <td className="px-2 py-2 text-xs text-right text-gray-900 dark:text-white font-bold">{fmtINR(dc.amt,0)}</td>
-                  <td className="px-2 py-2 text-xs text-right text-gray-600 dark:text-gray-300">{fmtINR(dc.stat,0)}</td>
-                  <td className="px-2 py-2 text-xs text-right text-gray-600 dark:text-gray-300">{fmtINR(dc.comm,0)}</td>
-                  <td className="px-2 py-2 text-xs text-right text-gray-600 dark:text-gray-300">{fmtINR(dc.truck,0)}</td>
-                  <td className="px-2 py-2 text-xs text-right text-gray-600 dark:text-gray-300">{fmtINR(dc.pt,0)}</td>
+                  <td className="px-2 py-2 text-xs text-right text-gray-900 dark:text-white font-bold">{fmtINR(dc.amt,0)}<div className="text-[10px] text-gray-400">{dc.qty>0?(dc.amt/dc.qty).toFixed(2)+"/box":""}</div></td>
+                  <td className="px-2 py-2 text-xs text-right text-gray-600 dark:text-gray-300">{fmtINR(dc.stat,0)}<div className="text-[10px] text-gray-400">{dc.amt>0?(dc.stat/dc.amt*100).toFixed(1):0}%</div></td>
+                  <td className="px-2 py-2 text-xs text-right text-gray-600 dark:text-gray-300">{fmtINR(dc.comm,0)}<div className="text-[10px] text-gray-400">{dc.amt>0?(dc.comm/dc.amt*100).toFixed(1):0}%</div></td>
+                  <td className="px-2 py-2 text-xs text-right text-gray-600 dark:text-gray-300">{fmtINR(dc.truck,0)}<div className="text-[10px] text-gray-400">{dc.amt>0?(dc.truck/dc.amt*100).toFixed(1):0}%</div></td>
+                  <td className="px-2 py-2 text-xs text-right text-gray-600 dark:text-gray-300">{fmtINR(dc.pt,0)}<div className="text-[10px] text-gray-400">{dc.amt>0?(dc.pt/dc.amt*100).toFixed(1):0}%</div></td>
                   {cf.map(f => (
-                    <td key={f.name} className="px-2 py-2 text-xs text-right text-purple-600 dark:text-purple-400 font-semibold">{fmtINR(dc.customTotals[f.name]??0,0)}</td>
+                    <td key={f.name} className="px-2 py-2 text-xs text-right text-purple-600 dark:text-purple-400 font-semibold">{fmtINR(dc.customTotals[f.name]??0,0)}<div className="text-[10px] text-gray-400">{dc.amt>0?((dc.customTotals[f.name]??0)/dc.amt*100).toFixed(1):0}%</div></td>
                   ))}
-                  <td className="px-2 py-2 text-xs text-right text-red-500 dark:text-red-400 font-bold">{fmtINR(dc.exp,0)}</td>
-                  <td className={"px-2 py-2 text-xs text-right font-bold " + (dc.net>=0?"text-green-600 dark:text-green-400":"text-red-500 dark:text-red-400")}>{fmtINR(dc.net,0)}</td>
-                  <td className={"px-2 py-2 text-xs text-right font-bold " + (dc.tnet>=0?"text-green-600 dark:text-green-400":"text-red-500 dark:text-red-400")}>{fmtINR(dc.tnet,0)}</td>
+                  <td className="px-2 py-2 text-xs text-right text-red-500 dark:text-red-400 font-bold">{fmtINR(dc.exp,0)}<div className="text-[10px] text-gray-400">{dc.amt>0?(dc.exp/dc.amt*100).toFixed(1):0}%</div></td>
+                  <td className={"px-2 py-2 text-xs text-right font-bold " + (dc.net>=0?"text-green-600 dark:text-green-400":"text-red-500 dark:text-red-400")}>{fmtINR(dc.net,0)}<div className="text-[10px]">{dc.qty>0?(dc.net/dc.qty).toFixed(2)+"/box":""}</div></td>
+                  <td className={"px-2 py-2 text-xs text-right font-bold " + (dc.tnet>=0?"text-green-600 dark:text-green-400":"text-red-500 dark:text-red-400")}>{fmtINR(dc.tnet,0)}<div className="text-[10px]">{dc.qty>0?(dc.tnet/dc.qty).toFixed(2)+"/box":""}</div></td>
                   <td colSpan={2}></td>
                 </tr>
               ];
@@ -481,14 +526,14 @@ export default function LedgerDashboard({ settings }: Props) {
                 <td></td>
                 <td className="px-2 py-3 text-xs text-right text-gray-900 dark:text-white font-bold">{fmtINR(grandCalc.qty,0)}</td>
                 <td className="px-2 py-3 text-xs text-right text-gray-900 dark:text-white font-bold">{fmtINR(grandCalc.amt,0)}<div className="text-[10px] text-gray-400">{grandCalc.qty>0?(grandCalc.amt/grandCalc.qty).toFixed(2)+"/box":""}</div></td>
-                <td className="px-2 py-3 text-xs text-right text-gray-700 dark:text-gray-200">{fmtINR(grandCalc.stat,0)}</td>
-                <td className="px-2 py-3 text-xs text-right text-gray-700 dark:text-gray-200">{fmtINR(grandCalc.comm,0)}</td>
-                <td className="px-2 py-3 text-xs text-right text-gray-700 dark:text-gray-200">{fmtINR(grandCalc.truck,0)}</td>
-                <td className="px-2 py-3 text-xs text-right text-gray-700 dark:text-gray-200">{fmtINR(grandCalc.pt,0)}</td>
+                <td className="px-2 py-3 text-xs text-right text-gray-700 dark:text-gray-200">{fmtINR(grandCalc.stat,0)}<div className="text-[10px] text-gray-400">{grandCalc.amt>0?(grandCalc.stat/grandCalc.amt*100).toFixed(1):0}%</div></td>
+                <td className="px-2 py-3 text-xs text-right text-gray-700 dark:text-gray-200">{fmtINR(grandCalc.comm,0)}<div className="text-[10px] text-gray-400">{grandCalc.amt>0?(grandCalc.comm/grandCalc.amt*100).toFixed(1):0}%</div></td>
+                <td className="px-2 py-3 text-xs text-right text-gray-700 dark:text-gray-200">{fmtINR(grandCalc.truck,0)}<div className="text-[10px] text-gray-400">{grandCalc.amt>0?(grandCalc.truck/grandCalc.amt*100).toFixed(1):0}%</div></td>
+                <td className="px-2 py-3 text-xs text-right text-gray-700 dark:text-gray-200">{fmtINR(grandCalc.pt,0)}<div className="text-[10px] text-gray-400">{grandCalc.amt>0?(grandCalc.pt/grandCalc.amt*100).toFixed(1):0}%</div></td>
                 {cf.map(f => (
-                  <td key={f.name} className="px-2 py-3 text-xs text-right text-purple-600 dark:text-purple-400 font-bold">{fmtINR(grandCalc.customTotals[f.name]??0,0)}</td>
+                  <td key={f.name} className="px-2 py-3 text-xs text-right text-purple-600 dark:text-purple-400 font-bold">{fmtINR(grandCalc.customTotals[f.name]??0,0)}<div className="text-[10px] text-gray-400">{grandCalc.amt>0?((grandCalc.customTotals[f.name]??0)/grandCalc.amt*100).toFixed(1):0}%</div></td>
                 ))}
-                <td className="px-2 py-3 text-xs text-right text-red-500 dark:text-red-400 font-bold">{fmtINR(grandCalc.exp,0)}</td>
+                <td className="px-2 py-3 text-xs text-right text-red-500 dark:text-red-400 font-bold">{fmtINR(grandCalc.exp,0)}<div className="text-[10px] text-gray-400">{grandCalc.amt>0?(grandCalc.exp/grandCalc.amt*100).toFixed(1):0}%</div></td>
                 <td className={"px-2 py-3 text-xs text-right font-bold text-base " + (grandCalc.net>=0?"text-green-600 dark:text-green-400":"text-red-500 dark:text-red-400")}>
                   {fmtINR(grandCalc.net,0)}
                   <div className="text-[10px]">{grandCalc.qty>0?(grandCalc.net/grandCalc.qty).toFixed(2)+"/box":""}</div>
@@ -511,9 +556,9 @@ export default function LedgerDashboard({ settings }: Props) {
           settings={settings}
           saving={createMut.isPending || updateMut.isPending}
           onClose={() => setModal(null)}
-          onSave={(date, rows) => {
-            if (modal.mode === "new") createMut.mutate({ date, rows });
-            else if (modal.entry) updateMut.mutate({ id: modal.entry.id, data: { date, rows } });
+          onSave={(date, description, rows) => {
+            if (modal.mode === "new") createMut.mutate({ date, description, rows });
+            else if (modal.entry) updateMut.mutate({ id: modal.entry.id, data: { date, description, rows } });
           }}
         />
       )}

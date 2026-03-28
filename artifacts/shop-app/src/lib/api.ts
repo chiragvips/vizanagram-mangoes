@@ -8,7 +8,7 @@ export async function getEntries(): Promise<LedgerEntry[]> {
   return r.json();
 }
 
-export async function createEntry(data: { date: string; payment_status?: string; rows: Partial<LedgerRow>[] }): Promise<LedgerEntry> {
+export async function createEntry(data: { date: string; description?: string; payment_status?: string; rows: Partial<LedgerRow>[] }): Promise<LedgerEntry> {
   const r = await fetch(`${BASE}/ledger/entries`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
   });
@@ -16,7 +16,7 @@ export async function createEntry(data: { date: string; payment_status?: string;
   return r.json();
 }
 
-export async function updateEntry(id: number, data: { date?: string; payment_status?: string; rows?: Partial<LedgerRow>[] }): Promise<LedgerEntry> {
+export async function updateEntry(id: number, data: { date?: string; description?: string; payment_status?: string; rows?: Partial<LedgerRow>[] }): Promise<LedgerEntry> {
   const r = await fetch(`${BASE}/ledger/entries/${id}`, {
     method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
   });

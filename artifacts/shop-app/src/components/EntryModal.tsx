@@ -43,7 +43,7 @@ interface Props {
   mode: "new" | "edit";
   entry?: LedgerEntry;
   settings: CalcSettings;
-  onSave: (date: string, rows: Partial<LedgerRow>[]) => void;
+  onSave: (date: string, description: string, rows: Partial<LedgerRow>[]) => void;
   onClose: () => void;
   saving?: boolean;
 }
@@ -51,6 +51,7 @@ interface Props {
 export default function EntryModal({ mode, entry, settings, onSave, onClose, saving }: Props) {
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(entry?.date ?? today);
+  const [description, setDescription] = useState(entry?.description ?? "");
   const [rows, setRows] = useState<RowDraft[]>(() => {
     if (entry?.rows?.length) {
       return entry.rows.map(r => ({
@@ -79,7 +80,7 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
   function handleSave() {
     const validRows = rows.filter(r => r.mark.trim());
     if (!validRows.length) return;
-    onSave(date, validRows.map(draftToRow));
+    onSave(date, description, validRows.map(draftToRow));
   }
 
   const numCls = "w-full bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1.5 text-gray-900 dark:text-white text-sm text-right focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
@@ -97,10 +98,18 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 dark:hover:text-white transition"><X size={20} /></button>
         </div>
 
-        <div className="px-6 py-4 flex items-center gap-4 border-b border-gray-200 dark:border-[#30363d]">
-          <label className="text-gray-600 dark:text-gray-300 text-sm font-medium whitespace-nowrap">Date (shared for all rows)</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-3 py-1.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-44" />
+        <div className="px-6 py-4 flex items-center gap-4 border-b border-gray-200 dark:border-[#30363d] flex-wrap">
+          <div>
+            <label className="text-gray-600 dark:text-gray-300 text-sm font-medium whitespace-nowrap block mb-1">Date (shared for all rows)</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)}
+              className="bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-3 py-1.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-44" />
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-gray-600 dark:text-gray-300 text-sm font-medium whitespace-nowrap block mb-1">Description (optional, shown on invoice)</label>
+            <input type="text" value={description} onChange={e => setDescription(e.target.value)}
+              placeholder="e.g. Lot from Vizianagram station..."
+              className="w-full bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-3 py-1.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+          </div>
         </div>
 
         <div className="px-6 pt-4">

@@ -1,8 +1,12 @@
+import dotenv from "dotenv";
+import path from "path";
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+
 import { sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { app } from "./app.js";
 import express from "express";
-import path from "path";
 
 const PORT = process.env.PORT ?? 3000;
 
@@ -11,6 +15,7 @@ async function ensureSchema() {
     CREATE TABLE IF NOT EXISTS ledger_entries (
       id SERIAL PRIMARY KEY,
       date DATE NOT NULL,
+      description TEXT DEFAULT '',
       payment_status TEXT DEFAULT 'unpaid',
       created_at TIMESTAMP DEFAULT NOW()
     )
@@ -48,6 +53,10 @@ async function ensureSchema() {
     INSERT INTO calc_settings (id, station_rate, commission_pct, truck_fare, pt_rate, custom_fields)
     VALUES (1, 20, 10, 100, 0, '[]')
     ON CONFLICT (id) DO NOTHING
+  `);
+  // Migration: add description column if missing
+  await db.execute(sql`
+    ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''
   `);
 }
 

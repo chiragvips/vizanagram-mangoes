@@ -7,11 +7,11 @@ export const ledgerRouter = Router();
 ledgerRouter.get("/ledger/entries", async (_req, res) => {
   try {
     const entries = await db.execute(sql`
-      SELECT e.id, e.date::text, e.payment_status, e.created_at,
+      SELECT e.id, e.date::text, e.description, e.payment_status, e.created_at,
              json_agg(r ORDER BY r.id) as rows
       FROM ledger_entries e
       LEFT JOIN ledger_rows r ON r.entry_id = e.id
-      GROUP BY e.id, e.date, e.payment_status, e.created_at
+      GROUP BY e.id, e.date, e.description, e.payment_status, e.created_at
       ORDER BY e.date DESC, e.id DESC
     `);
     res.json(entries.rows);
@@ -22,11 +22,11 @@ ledgerRouter.get("/ledger/entries", async (_req, res) => {
 });
 
 ledgerRouter.post("/ledger/entries", async (req, res) => {
-  const { date, payment_status = "unpaid", rows = [] } = req.body;
+  const { date, description = "", payment_status = "unpaid", rows = [] } = req.body;
   if (!date) { res.status(400).json({ error: "date required" }); return; }
   try {
     const [entry] = (await db.execute(sql`
-      INSERT INTO ledger_entries (date, payment_status) VALUES (${date}, ${payment_status}) RETURNING *
+      INSERT INTO ledger_entries (date, description, payment_status) VALUES (${date}, ${description}, ${payment_status}) RETURNING *
     `)).rows as any[];
     for (const r of rows) {
       const totalQty = (Number(r.qty1)||0) + (Number(r.qty2)||0) + (Number(r.qty3)||0);
@@ -39,12 +39,12 @@ ledgerRouter.post("/ledger/entries", async (req, res) => {
       `);
     }
     const result = (await db.execute(sql`
-      SELECT e.id, e.date::text, e.payment_status, e.created_at,
+      SELECT e.id, e.date::text, e.description, e.payment_status, e.created_at,
              json_agg(r ORDER BY r.id) as rows
       FROM ledger_entries e
       LEFT JOIN ledger_rows r ON r.entry_id = e.id
       WHERE e.id = ${entry.id}
-      GROUP BY e.id, e.date, e.payment_status, e.created_at
+      GROUP BY e.id, e.date, e.description, e.payment_status, e.created_at
     `)).rows[0];
     res.status(201).json(result);
   } catch (err) {
@@ -55,13 +55,12 @@ ledgerRouter.post("/ledger/entries", async (req, res) => {
 
 ledgerRouter.put("/ledger/entries/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const { date, payment_status, rows } = req.body;
+  const { date, description, payment_status, rows } = req.body;
   try {
-    if (date || payment_status) {
-      const parts: string[] = [];
-      if (date) parts.push(`date = '${date}'`);
-      if (payment_status) parts.push(`payment_status = '${payment_status}'`);
-      await db.execute(sql.raw(`UPDATE ledger_entries SET ${parts.join(", ")} WHERE id = ${id}`));
+    if (date !== undefined || description !== undefined || payment_status !== undefined) {
+      if (date !== undefined) await db.execute(sql`UPDATE ledger_entries SET date = ${date} WHERE id = ${id}`);
+      if (description !== undefined) await db.execute(sql`UPDATE ledger_entries SET description = ${description} WHERE id = ${id}`);
+      if (payment_status !== undefined) await db.execute(sql`UPDATE ledger_entries SET payment_status = ${payment_status} WHERE id = ${id}`);
     }
     if (rows) {
       await db.execute(sql`DELETE FROM ledger_rows WHERE entry_id = ${id}`);
@@ -77,12 +76,12 @@ ledgerRouter.put("/ledger/entries/:id", async (req, res) => {
       }
     }
     const result = (await db.execute(sql`
-      SELECT e.id, e.date::text, e.payment_status, e.created_at,
+      SELECT e.id, e.date::text, e.description, e.payment_status, e.created_at,
              json_agg(r ORDER BY r.id) as rows
       FROM ledger_entries e
       LEFT JOIN ledger_rows r ON r.entry_id = e.id
       WHERE e.id = ${id}
-      GROUP BY e.id, e.date, e.payment_status, e.created_at
+      GROUP BY e.id, e.date, e.description, e.payment_status, e.created_at
     `)).rows[0];
     res.json(result);
   } catch (err) {

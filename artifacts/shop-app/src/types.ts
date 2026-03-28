@@ -19,6 +19,7 @@ export interface LedgerRow {
 export interface LedgerEntry {
   id: number;
   date: string;
+  description: string;
   payment_status: "paid" | "unpaid";
   created_at: string;
   rows: LedgerRow[];
