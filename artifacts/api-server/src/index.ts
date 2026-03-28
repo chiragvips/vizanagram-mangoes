@@ -61,7 +61,7 @@ async function main() {
 
   const staticDir = path.join(process.cwd(), "artifacts/shop-app/dist/public");
   app.use(express.static(staticDir));
-  app.get("*", (_req: any, res: any) => {
+  app.get("/{*path}", (_req: any, res: any) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });
 
