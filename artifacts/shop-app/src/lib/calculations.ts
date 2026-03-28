@@ -27,13 +27,21 @@ export function calcRow(row: LedgerRow, s: CalcSettings): RowCalc {
     ? Number(row.override_pt)
     : Number(s.pt_rate);
 
-  const expenses = station + commission + truck + pt;
+  const customValues: Record<string, number> = {};
+  let customTotal = 0;
+  for (const cf of s.custom_fields ?? []) {
+    const val = cf.per_unit ? totalQty * Number(cf.default_value) : Number(cf.default_value);
+    customValues[cf.name] = val;
+    customTotal += val;
+  }
+
+  const expenses = station + commission + truck + pt + customTotal;
   const net = amount - expenses;
   const net_per_box = totalQty > 0 ? net / totalQty : 0;
   const total_net = net * 1.02;
   const total_net_per_box = totalQty > 0 ? total_net / totalQty : 0;
 
-  return { amount, station, commission, truck, pt, expenses, net, net_per_box, total_net, total_net_per_box };
+  return { amount, station, commission, truck, pt, customValues, customTotal, expenses, net, net_per_box, total_net, total_net_per_box };
 }
 
 export function fmtINR(n: number, decimals = 2): string {

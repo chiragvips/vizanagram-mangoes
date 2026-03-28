@@ -45,6 +45,8 @@ export interface RowCalc {
   commission: number;
   truck: number;
   pt: number;
+  customValues: Record<string, number>;
+  customTotal: number;
   expenses: number;
   net: number;
   net_per_box: number;

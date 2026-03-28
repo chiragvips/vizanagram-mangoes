@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { X, Plus } from "lucide-react";
 import type { LedgerEntry, LedgerRow, CalcSettings } from "../types";
 import { calcRow, fmtINR } from "../lib/calculations";
 
@@ -82,36 +82,37 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
     onSave(date, validRows.map(draftToRow));
   }
 
-  const numCls = "w-full bg-[#1c2333] border border-[#30363d] rounded px-2 py-1.5 text-white text-sm text-right focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
-  const textCls = "w-full bg-[#1c2333] border border-[#30363d] rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+  const numCls = "w-full bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1.5 text-gray-900 dark:text-white text-sm text-right focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+  const textCls = "w-full bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+  const rateNumCls = "w-full bg-blue-50 dark:bg-[#12203a] border border-blue-300 dark:border-blue-700 rounded px-2 py-1.5 text-gray-900 dark:text-white text-sm text-right focus:outline-none focus:border-blue-500";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-[#0d1117] border border-[#30363d] rounded-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#30363d]">
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-[#30363d] rounded-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#30363d]">
           <div className="flex items-center gap-3">
-            <h2 className="text-white font-bold text-lg">{mode === "new" ? "New Entry" : "Edit Entry"}</h2>
+            <h2 className="text-gray-900 dark:text-white font-bold text-lg">{mode === "new" ? "New Entry" : "Edit Entry"}</h2>
             <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">{rows.length} row{rows.length !== 1 ? "s" : ""}</span>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition"><X size={20} /></button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 dark:hover:text-white transition"><X size={20} /></button>
         </div>
 
-        <div className="px-6 py-4 flex items-center gap-4 border-b border-[#30363d]">
-          <label className="text-gray-300 text-sm font-medium whitespace-nowrap">Date (shared for all rows)</label>
+        <div className="px-6 py-4 flex items-center gap-4 border-b border-gray-200 dark:border-[#30363d]">
+          <label className="text-gray-600 dark:text-gray-300 text-sm font-medium whitespace-nowrap">Date (shared for all rows)</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="bg-[#1c2333] border border-[#30363d] rounded px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-44" />
+            className="bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-3 py-1.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-44" />
         </div>
 
         <div className="px-6 pt-4">
-          <div className="grid text-xs text-gray-400 uppercase tracking-wider mb-2" style={{ gridTemplateColumns: "140px 64px 80px 64px 80px 64px 80px 70px 1fr 32px" }}>
+          <div className="grid text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2" style={{ gridTemplateColumns: "140px 64px 80px 64px 80px 64px 80px 70px 1fr 32px" }}>
             <div>MARK *</div>
-            <div className="text-center">QTY1<br/><span className="text-gray-600">(5kg)</span></div>
-            <div className="text-blue-400 text-center">RATE1</div>
-            <div className="text-center">QTY2<br/><span className="text-gray-600">(10kg)</span></div>
-            <div className="text-blue-400 text-center">RATE2</div>
-            <div className="text-center">QTY3<br/><span className="text-gray-600">(15kg)</span></div>
-            <div className="text-blue-400 text-center">RATE3</div>
-            <div className="text-center">TOTAL<br/><span className="text-gray-600">(auto)</span></div>
+            <div className="text-center">QTY1<br/><span className="text-gray-400 dark:text-gray-600">(5kg)</span></div>
+            <div className="text-blue-500 dark:text-blue-400 text-center">RATE1</div>
+            <div className="text-center">QTY2<br/><span className="text-gray-400 dark:text-gray-600">(10kg)</span></div>
+            <div className="text-blue-500 dark:text-blue-400 text-center">RATE2</div>
+            <div className="text-center">QTY3<br/><span className="text-gray-400 dark:text-gray-600">(15kg)</span></div>
+            <div className="text-blue-500 dark:text-blue-400 text-center">RATE3</div>
+            <div className="text-center">TOTAL<br/><span className="text-gray-400 dark:text-gray-600">(auto)</span></div>
             <div>TRUCK NO</div>
             <div></div>
           </div>
@@ -122,41 +123,41 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
               const calc = calcRow({ ...rd, override_station: rd.override_station ?? null, override_commission: rd.override_commission ?? null, override_truck: rd.override_truck ?? null, override_pt: rd.override_pt ?? null } as any, settings);
               const total = (Number(row.qty1)||0)+(Number(row.qty2)||0)+(Number(row.qty3)||0);
               return (
-                <div key={i} className="bg-[#161b22] border border-[#30363d] rounded-lg p-3">
+                <div key={i} className="bg-gray-50 dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg p-3">
                   <div className="grid gap-2 items-center" style={{ gridTemplateColumns: "140px 64px 80px 64px 80px 64px 80px 70px 1fr 32px" }}>
                     <input className={textCls} placeholder="e.g. KG" value={row.mark}
                       onChange={e => setRow(i, { mark: e.target.value })} />
                     <input className={numCls} type="number" min="0" value={row.qty1}
                       onChange={e => setRow(i, { qty1: e.target.value })} />
-                    <input className={`${numCls} border-blue-700 bg-[#12203a]`} type="number" min="0" step="0.01" value={row.rate1}
+                    <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate1}
                       onChange={e => setRow(i, { rate1: e.target.value })} />
                     <input className={numCls} type="number" min="0" value={row.qty2}
                       onChange={e => setRow(i, { qty2: e.target.value })} />
-                    <input className={`${numCls} border-blue-700 bg-[#12203a]`} type="number" min="0" step="0.01" value={row.rate2}
+                    <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate2}
                       onChange={e => setRow(i, { rate2: e.target.value })} />
                     <input className={numCls} type="number" min="0" value={row.qty3}
                       onChange={e => setRow(i, { qty3: e.target.value })} />
-                    <input className={`${numCls} border-blue-700 bg-[#12203a]`} type="number" min="0" step="0.01" value={row.rate3}
+                    <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate3}
                       onChange={e => setRow(i, { rate3: e.target.value })} />
-                    <div className="bg-[#1c2333] border border-[#30363d] rounded px-2 py-1.5 text-gray-300 text-sm text-right">{total > 0 ? total : "—"}</div>
+                    <div className="bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1.5 text-gray-600 dark:text-gray-300 text-sm text-right">{total > 0 ? total : "—"}</div>
                     <input className={textCls} placeholder="e.g. TN-01" value={row.truck_no}
                       onChange={e => setRow(i, { truck_no: e.target.value })} />
-                    <button onClick={() => removeRow(i)} className="text-gray-500 hover:text-red-400 transition flex items-center justify-center">
+                    <button onClick={() => removeRow(i)} className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition flex items-center justify-center">
                       <X size={16} />
                     </button>
                   </div>
 
                   <div className="mt-2 flex items-center gap-2">
                     <input type="checkbox" id={`ov-${i}`} checked={row.override} onChange={e => setRow(i, { override: e.target.checked })}
-                      className="rounded border-gray-600 bg-[#1c2333]" />
-                    <label htmlFor={`ov-${i}`} className="text-gray-400 text-xs">Override calculated values — leave blank to auto-calculate</label>
+                      className="rounded border-gray-300 dark:border-gray-600" />
+                    <label htmlFor={`ov-${i}`} className="text-gray-500 dark:text-gray-400 text-xs">Override calculated values — leave blank to auto-calculate</label>
                   </div>
 
                   {row.override && (
                     <div className="mt-2 grid grid-cols-4 gap-2">
                       {[["Station", "override_station"], ["Commission", "override_commission"], ["Truck Fare", "override_truck"], ["P & T", "override_pt"]].map(([label, field]) => (
                         <div key={field}>
-                          <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+                          <label className="text-xs text-gray-500 dark:text-gray-500 mb-1 block">{label}</label>
                           <input className={numCls} type="number" step="0.01"
                             placeholder="auto"
                             value={(row as any)[field]}
@@ -166,11 +167,14 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
                     </div>
                   )}
 
-                  <div className="mt-2 text-xs flex gap-4 text-gray-400">
-                    <span>Amt: <span className="text-white font-medium">₹{fmtINR(calc.amount)}</span></span>
-                    <span>Exp: <span className="text-red-400 font-medium">₹{fmtINR(calc.expenses)}</span></span>
-                    <span>Net: <span className={`font-medium ${calc.net >= 0 ? "text-green-400" : "text-red-400"}`}>₹{fmtINR(calc.net)}</span></span>
-                    <span>Net/box: <span className={`font-medium ${calc.net_per_box >= 0 ? "text-green-400" : "text-red-400"}`}>₹{fmtINR(calc.net_per_box)}</span></span>
+                  <div className="mt-2 text-xs flex gap-4 text-gray-500 dark:text-gray-400">
+                    <span>Amt: <span className="text-gray-900 dark:text-white font-medium">₹{fmtINR(calc.amount)}</span></span>
+                    <span>Exp: <span className="text-red-500 dark:text-red-400 font-medium">₹{fmtINR(calc.expenses)}</span></span>
+                    <span>Net: <span className={`font-medium ${calc.net >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>₹{fmtINR(calc.net)}</span></span>
+                    <span>Net/box: <span className={`font-medium ${calc.net_per_box >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>₹{fmtINR(calc.net_per_box)}</span></span>
+                    {(settings.custom_fields ?? []).map(f => (
+                      <span key={f.name}>{f.name}: <span className="text-purple-600 dark:text-purple-400 font-medium">₹{fmtINR(calc.customValues[f.name] ?? 0)}</span></span>
+                    ))}
                   </div>
                 </div>
               );
@@ -178,13 +182,13 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
           </div>
 
           <button onClick={addRow}
-            className="mt-3 w-full border border-dashed border-[#30363d] rounded-lg py-2.5 text-gray-400 hover:text-white hover:border-blue-600 transition text-sm flex items-center justify-center gap-2">
+            className="mt-3 w-full border border-dashed border-gray-300 dark:border-[#30363d] rounded-lg py-2.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-blue-500 dark:hover:border-blue-600 transition text-sm flex items-center justify-center gap-2">
             <Plus size={14} /> Add Row
           </button>
         </div>
 
-        <div className="px-6 py-4 flex justify-end gap-3 border-t border-[#30363d] mt-4">
-          <button onClick={onClose} className="px-5 py-2 rounded-lg border border-[#30363d] text-gray-300 hover:bg-[#1c2333] transition text-sm">Cancel</button>
+        <div className="px-6 py-4 flex justify-end gap-3 border-t border-gray-200 dark:border-[#30363d] mt-4">
+          <button onClick={onClose} className="px-5 py-2 rounded-lg border border-gray-200 dark:border-[#30363d] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1c2333] transition text-sm">Cancel</button>
           <button onClick={handleSave} disabled={saving}
             className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition disabled:opacity-50">
             {saving ? "Saving..." : mode === "new" ? "Create Entry" : "Save Changes"}
