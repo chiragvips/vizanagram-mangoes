@@ -25,10 +25,13 @@ async function ensureSchema() {
       id SERIAL PRIMARY KEY,
       entry_id INTEGER NOT NULL REFERENCES ledger_entries(id) ON DELETE CASCADE,
       mark TEXT NOT NULL,
+      submark1 TEXT DEFAULT '',
       qty1 NUMERIC(10,2) DEFAULT 0,
       rate1 NUMERIC(10,2) DEFAULT 0,
+      submark2 TEXT DEFAULT '',
       qty2 NUMERIC(10,2) DEFAULT 0,
       rate2 NUMERIC(10,2) DEFAULT 0,
+      submark3 TEXT DEFAULT '',
       qty3 NUMERIC(10,2) DEFAULT 0,
       rate3 NUMERIC(10,2) DEFAULT 0,
       total_qty NUMERIC(10,2) DEFAULT 0,
@@ -58,6 +61,10 @@ async function ensureSchema() {
   await db.execute(sql`
     ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''
   `);
+  // Migration: add submark columns if missing
+  await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS submark1 TEXT DEFAULT ''`);
+  await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS submark2 TEXT DEFAULT ''`);
+  await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS submark3 TEXT DEFAULT ''`);
 }
 
 async function main() {

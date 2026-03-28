@@ -90,10 +90,13 @@ export default function LedgerDashboard({ settings }: Props) {
           Date: entry.date,
           Mark: row.mark,
           "Truck No": row.truck_no,
+          "Submark 1": row.submark1 || "",
           "QTY1 (5kg)": Number(row.qty1),
           RATE1: Number(row.rate1),
+          "Submark 2": row.submark2 || "",
           "QTY2 (10kg)": Number(row.qty2),
           RATE2: Number(row.rate2),
+          "Submark 3": row.submark3 || "",
           "QTY3 (15kg)": Number(row.qty3),
           RATE3: Number(row.rate3),
           "Total QTY": Number(row.total_qty),
@@ -260,7 +263,7 @@ export default function LedgerDashboard({ settings }: Props) {
     return {qty1,qty2,qty3,qty,amt,stat,comm,truck,pt,exp,net,tnet,customTotals};
   }, [filtered, settings]);
 
-  const totalCols = 21 + cf.length;
+  const totalCols = 24 + cf.length;
 
   const thCls = "px-2 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap border-b border-gray-200 dark:border-[#30363d]";
   const tdCls = "px-2 py-2 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap";
@@ -330,7 +333,7 @@ export default function LedgerDashboard({ settings }: Props) {
       )}
 
       <div className="flex-1 overflow-auto px-4 pb-4">
-        <table className="w-full border-collapse text-left" style={{ minWidth: `${1200 + cf.length * 90}px` }}>
+        <table className="w-full border-collapse text-left" style={{ minWidth: `${1440 + cf.length * 90}px` }}>
           <thead className="sticky top-0 bg-gray-50 dark:bg-[#0d1117] z-10">
             <tr>
               <th className={thCls + " w-8"}>
@@ -341,10 +344,13 @@ export default function LedgerDashboard({ settings }: Props) {
               <th className={thCls}>DATE</th>
               <th className={thCls}>MARK</th>
               <th className={thCls}>TRUCK NO</th>
+              <th className={thCls + " text-orange-500 dark:text-orange-400"}>SUB 1</th>
               <th className={thCls + " text-right"}>QTY1<br/><span className="text-gray-400 dark:text-gray-600 normal-case">(5kg)</span></th>
               <th className={thCls + " text-blue-500 dark:text-blue-400"}>RATE1</th>
+              <th className={thCls + " text-orange-500 dark:text-orange-400"}>SUB 2</th>
               <th className={thCls + " text-right"}>QTY2<br/><span className="text-gray-400 dark:text-gray-600 normal-case">(10kg)</span></th>
               <th className={thCls + " text-blue-500 dark:text-blue-400"}>RATE2</th>
+              <th className={thCls + " text-orange-500 dark:text-orange-400"}>SUB 3</th>
               <th className={thCls + " text-right"}>QTY3<br/><span className="text-gray-400 dark:text-gray-600 normal-case">(15kg)</span></th>
               <th className={thCls + " text-blue-500 dark:text-blue-400"}>RATE3</th>
               <th className={thCls + " text-right"}>QTY</th>
@@ -410,16 +416,19 @@ export default function LedgerDashboard({ settings }: Props) {
                           <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 px-2 py-0.5 rounded text-[10px] font-bold">{row.mark}</span>
                         </td>
                         <td className={tdCls}>{row.truck_no || "—"}</td>
+                        <td className={tdCls + " text-orange-600 dark:text-orange-400 text-[10px] font-medium"}>{row.submark1 || "—"}</td>
                         <td className={tdCls + " text-right"}>
                           <div className="font-medium text-gray-900 dark:text-white">{fmtINR(Number(row.qty1), 0)}</div>
                           <div className="text-[10px] text-gray-400 dark:text-gray-500">{q1pct}%</div>
                         </td>
                         <td className={tdCls + " text-blue-600 dark:text-blue-400 font-medium"}>{Number(row.rate1) > 0 ? fmtINR(Number(row.rate1), 0) : "—"}</td>
+                        <td className={tdCls + " text-orange-600 dark:text-orange-400 text-[10px] font-medium"}>{row.submark2 || "—"}</td>
                         <td className={tdCls + " text-right"}>
                           <div className="font-medium text-gray-900 dark:text-white">{fmtINR(Number(row.qty2), 0)}</div>
                           <div className="text-[10px] text-gray-400 dark:text-gray-500">{q2pct}%</div>
                         </td>
                         <td className={tdCls + " text-blue-600 dark:text-blue-400 font-medium"}>{Number(row.rate2) > 0 ? fmtINR(Number(row.rate2), 0) : "—"}</td>
+                        <td className={tdCls + " text-orange-600 dark:text-orange-400 text-[10px] font-medium"}>{row.submark3 || "—"}</td>
                         <td className={tdCls + " text-right"}>
                           <div className="font-medium text-gray-900 dark:text-white">{fmtINR(Number(row.qty3), 0)}</div>
                           <div className="text-[10px] text-gray-400 dark:text-gray-500">{q3pct}%</div>
@@ -491,9 +500,12 @@ export default function LedgerDashboard({ settings }: Props) {
                 <tr key={`subtotal-${date}`} className="border-t border-gray-300 dark:border-[#30363d] bg-blue-50 dark:bg-[#1a1f2e]">
                   <td></td>
                   <td colSpan={3} className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400 font-semibold">{formatDateDMY(date)} TOTALS</td>
+                  <td></td>
                   <td className="px-2 py-2 text-xs text-right text-gray-700 dark:text-gray-300 font-semibold">{fmtINR(dc.qty1,0)}<div className="text-[10px] text-gray-400">{dc.qty>0?(dc.qty1/dc.qty*100).toFixed(1):0}%</div></td>
                   <td></td>
+                  <td></td>
                   <td className="px-2 py-2 text-xs text-right text-gray-700 dark:text-gray-300 font-semibold">{fmtINR(dc.qty2,0)}<div className="text-[10px] text-gray-400">{dc.qty>0?(dc.qty2/dc.qty*100).toFixed(1):0}%</div></td>
+                  <td></td>
                   <td></td>
                   <td className="px-2 py-2 text-xs text-right text-gray-700 dark:text-gray-300 font-semibold">{fmtINR(dc.qty3,0)}<div className="text-[10px] text-gray-400">{dc.qty>0?(dc.qty3/dc.qty*100).toFixed(1):0}%</div></td>
                   <td></td>
@@ -518,9 +530,12 @@ export default function LedgerDashboard({ settings }: Props) {
               <tr className="border-t-2 border-blue-500 dark:border-blue-700 bg-blue-100 dark:bg-[#0d1528]">
                 <td></td>
                 <td colSpan={3} className="px-2 py-3 text-xs text-blue-600 dark:text-blue-300 font-bold uppercase tracking-wider">GRAND TOTAL</td>
+                <td></td>
                 <td className="px-2 py-3 text-xs text-right text-gray-900 dark:text-white font-bold">{fmtINR(grandCalc.qty1,0)}<div className="text-[10px] text-gray-500">{grandCalc.qty>0?(grandCalc.qty1/grandCalc.qty*100).toFixed(1):0}%</div></td>
                 <td></td>
+                <td></td>
                 <td className="px-2 py-3 text-xs text-right text-gray-900 dark:text-white font-bold">{fmtINR(grandCalc.qty2,0)}<div className="text-[10px] text-gray-500">{grandCalc.qty>0?(grandCalc.qty2/grandCalc.qty*100).toFixed(1):0}%</div></td>
+                <td></td>
                 <td></td>
                 <td className="px-2 py-3 text-xs text-right text-gray-900 dark:text-white font-bold">{fmtINR(grandCalc.qty3,0)}<div className="text-[10px] text-gray-500">{grandCalc.qty>0?(grandCalc.qty3/grandCalc.qty*100).toFixed(1):0}%</div></td>
                 <td></td>

@@ -2,10 +2,13 @@ export interface LedgerRow {
   id?: number;
   entry_id?: number;
   mark: string;
+  submark1: string;
   qty1: number;
   rate1: number;
+  submark2: string;
   qty2: number;
   rate2: number;
+  submark3: string;
   qty3: number;
   rate3: number;
   total_qty: number;

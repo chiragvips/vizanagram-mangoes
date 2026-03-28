@@ -5,9 +5,9 @@ import { calcRow, fmtINR } from "../lib/calculations";
 
 interface RowDraft {
   mark: string;
-  qty1: string; rate1: string;
-  qty2: string; rate2: string;
-  qty3: string; rate3: string;
+  submark1: string; qty1: string; rate1: string;
+  submark2: string; qty2: string; rate2: string;
+  submark3: string; qty3: string; rate3: string;
   truck_no: string;
   override: boolean;
   override_station: string;
@@ -18,8 +18,10 @@ interface RowDraft {
 
 function emptyRow(): RowDraft {
   return {
-    mark: "", qty1: "0", rate1: "0.00", qty2: "0", rate2: "0.00",
-    qty3: "0", rate3: "0.00", truck_no: "", override: false,
+    mark: "", submark1: "", qty1: "0", rate1: "0.00",
+    submark2: "", qty2: "0", rate2: "0.00",
+    submark3: "", qty3: "0", rate3: "0.00",
+    truck_no: "", override: false,
     override_station: "", override_commission: "", override_truck: "", override_pt: "",
   };
 }
@@ -27,9 +29,9 @@ function emptyRow(): RowDraft {
 function draftToRow(d: RowDraft): Partial<LedgerRow> {
   return {
     mark: d.mark,
-    qty1: Number(d.qty1)||0, rate1: Number(d.rate1)||0,
-    qty2: Number(d.qty2)||0, rate2: Number(d.rate2)||0,
-    qty3: Number(d.qty3)||0, rate3: Number(d.rate3)||0,
+    submark1: d.submark1, qty1: Number(d.qty1)||0, rate1: Number(d.rate1)||0,
+    submark2: d.submark2, qty2: Number(d.qty2)||0, rate2: Number(d.rate2)||0,
+    submark3: d.submark3, qty3: Number(d.qty3)||0, rate3: Number(d.rate3)||0,
     total_qty: (Number(d.qty1)||0)+(Number(d.qty2)||0)+(Number(d.qty3)||0),
     truck_no: d.truck_no,
     override_station: d.override && d.override_station !== "" ? Number(d.override_station) : null,
@@ -56,9 +58,9 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
     if (entry?.rows?.length) {
       return entry.rows.map(r => ({
         mark: r.mark ?? "",
-        qty1: String(r.qty1 ?? 0), rate1: String(r.rate1 ?? 0),
-        qty2: String(r.qty2 ?? 0), rate2: String(r.rate2 ?? 0),
-        qty3: String(r.qty3 ?? 0), rate3: String(r.rate3 ?? 0),
+        submark1: r.submark1 ?? "", qty1: String(r.qty1 ?? 0), rate1: String(r.rate1 ?? 0),
+        submark2: r.submark2 ?? "", qty2: String(r.qty2 ?? 0), rate2: String(r.rate2 ?? 0),
+        submark3: r.submark3 ?? "", qty3: String(r.qty3 ?? 0), rate3: String(r.rate3 ?? 0),
         truck_no: r.truck_no ?? "",
         override: r.override_station !== null || r.override_commission !== null || r.override_truck !== null || r.override_pt !== null,
         override_station: r.override_station !== null ? String(r.override_station) : "",
@@ -85,6 +87,7 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
 
   const numCls = "w-full bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1.5 text-gray-900 dark:text-white text-sm text-right focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
   const textCls = "w-full bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+  const submarkCls = "w-full bg-orange-50 dark:bg-[#1a1708] border border-orange-300 dark:border-orange-800 rounded px-2 py-1.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500";
   const rateNumCls = "w-full bg-blue-50 dark:bg-[#12203a] border border-blue-300 dark:border-blue-700 rounded px-2 py-1.5 text-gray-900 dark:text-white text-sm text-right focus:outline-none focus:border-blue-500";
 
   return (
@@ -113,12 +116,15 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
         </div>
 
         <div className="px-6 pt-4">
-          <div className="grid text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2" style={{ gridTemplateColumns: "140px 64px 80px 64px 80px 64px 80px 70px 1fr 32px" }}>
+          <div className="grid text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2" style={{ gridTemplateColumns: "120px 80px 56px 72px 80px 56px 72px 80px 56px 72px 60px 1fr 32px" }}>
             <div>MARK *</div>
+            <div className="text-center text-orange-500 dark:text-orange-400">SUB 1</div>
             <div className="text-center">QTY1<br/><span className="text-gray-400 dark:text-gray-600">(5kg)</span></div>
             <div className="text-blue-500 dark:text-blue-400 text-center">RATE1</div>
+            <div className="text-center text-orange-500 dark:text-orange-400">SUB 2</div>
             <div className="text-center">QTY2<br/><span className="text-gray-400 dark:text-gray-600">(10kg)</span></div>
             <div className="text-blue-500 dark:text-blue-400 text-center">RATE2</div>
+            <div className="text-center text-orange-500 dark:text-orange-400">SUB 3</div>
             <div className="text-center">QTY3<br/><span className="text-gray-400 dark:text-gray-600">(15kg)</span></div>
             <div className="text-blue-500 dark:text-blue-400 text-center">RATE3</div>
             <div className="text-center">TOTAL<br/><span className="text-gray-400 dark:text-gray-600">(auto)</span></div>
@@ -133,17 +139,23 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
               const total = (Number(row.qty1)||0)+(Number(row.qty2)||0)+(Number(row.qty3)||0);
               return (
                 <div key={i} className="bg-gray-50 dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg p-3">
-                  <div className="grid gap-2 items-center" style={{ gridTemplateColumns: "140px 64px 80px 64px 80px 64px 80px 70px 1fr 32px" }}>
+                  <div className="grid gap-2 items-center" style={{ gridTemplateColumns: "120px 80px 56px 72px 80px 56px 72px 80px 56px 72px 60px 1fr 32px" }}>
                     <input className={textCls} placeholder="e.g. KG" value={row.mark}
                       onChange={e => setRow(i, { mark: e.target.value })} />
+                    <input className={submarkCls} placeholder="sub1" value={row.submark1}
+                      onChange={e => setRow(i, { submark1: e.target.value })} />
                     <input className={numCls} type="number" min="0" value={row.qty1}
                       onChange={e => setRow(i, { qty1: e.target.value })} />
                     <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate1}
                       onChange={e => setRow(i, { rate1: e.target.value })} />
+                    <input className={submarkCls} placeholder="sub2" value={row.submark2}
+                      onChange={e => setRow(i, { submark2: e.target.value })} />
                     <input className={numCls} type="number" min="0" value={row.qty2}
                       onChange={e => setRow(i, { qty2: e.target.value })} />
                     <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate2}
                       onChange={e => setRow(i, { rate2: e.target.value })} />
+                    <input className={submarkCls} placeholder="sub3" value={row.submark3}
+                      onChange={e => setRow(i, { submark3: e.target.value })} />
                     <input className={numCls} type="number" min="0" value={row.qty3}
                       onChange={e => setRow(i, { qty3: e.target.value })} />
                     <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate3}
