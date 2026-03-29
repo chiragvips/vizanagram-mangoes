@@ -123,56 +123,98 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
         </div>
 
         <div className="px-6 pt-4">
-          <div className="grid text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2" style={{ gridTemplateColumns: "120px 80px 56px 72px 80px 56px 72px 80px 56px 72px 60px 1fr 32px" }}>
-            <div>MARK *</div>
-            <div className="text-center text-orange-500 dark:text-orange-400">SUB 1</div>
-            <div className="text-center">QTY1<br/><span className="text-gray-400 dark:text-gray-600">(5kg)</span></div>
-            <div className="text-blue-500 dark:text-blue-400 text-center">RATE1</div>
-            <div className="text-center text-orange-500 dark:text-orange-400">SUB 2</div>
-            <div className="text-center">QTY2<br/><span className="text-gray-400 dark:text-gray-600">(10kg)</span></div>
-            <div className="text-blue-500 dark:text-blue-400 text-center">RATE2</div>
-            <div className="text-center text-orange-500 dark:text-orange-400">SUB 3</div>
-            <div className="text-center">QTY3<br/><span className="text-gray-400 dark:text-gray-600">(15kg)</span></div>
-            <div className="text-blue-500 dark:text-blue-400 text-center">RATE3</div>
-            <div className="text-center">TOTAL<br/><span className="text-gray-400 dark:text-gray-600">(auto)</span></div>
-            <div>TRUCK NO</div>
-            <div></div>
-          </div>
-
           <div className="space-y-3">
             {rows.map((row, i) => {
               const rd = draftToRow(row);
               const calc = calcRow({ ...rd, override_station: rd.override_station ?? null, override_commission: rd.override_commission ?? null, override_truck: rd.override_truck ?? null, override_pt: rd.override_pt ?? null } as any, settings);
               const total = (Number(row.qty1)||0)+(Number(row.qty2)||0)+(Number(row.qty3)||0);
               return (
-                <div key={i} className="bg-gray-50 dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg p-3">
-                  <div className="grid gap-2 items-center" style={{ gridTemplateColumns: "120px 80px 56px 72px 80px 56px 72px 80px 56px 72px 60px 1fr 32px" }}>
-                    <input className={textCls} placeholder="e.g. KG" value={row.mark}
-                      onChange={e => setRow(i, { mark: e.target.value })} />
-                    <input className={submarkCls} placeholder="sub1" value={row.submark1}
-                      onChange={e => setRow(i, { submark1: e.target.value })} />
-                    <input className={numCls} type="number" min="0" value={row.qty1}
-                      onChange={e => setRow(i, { qty1: e.target.value })} />
-                    <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate1}
-                      onChange={e => setRow(i, { rate1: e.target.value })} />
-                    <input className={submarkCls} placeholder="sub2" value={row.submark2}
-                      onChange={e => setRow(i, { submark2: e.target.value })} />
-                    <input className={numCls} type="number" min="0" value={row.qty2}
-                      onChange={e => setRow(i, { qty2: e.target.value })} />
-                    <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate2}
-                      onChange={e => setRow(i, { rate2: e.target.value })} />
-                    <input className={submarkCls} placeholder="sub3" value={row.submark3}
-                      onChange={e => setRow(i, { submark3: e.target.value })} />
-                    <input className={numCls} type="number" min="0" value={row.qty3}
-                      onChange={e => setRow(i, { qty3: e.target.value })} />
-                    <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate3}
-                      onChange={e => setRow(i, { rate3: e.target.value })} />
-                    <div className="bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1.5 text-gray-600 dark:text-gray-300 text-sm text-right">{total > 0 ? total : "—"}</div>
-                    <input className={textCls} placeholder="e.g. TN-01" value={row.truck_no}
-                      onChange={e => setRow(i, { truck_no: e.target.value })} />
-                    <button onClick={() => removeRow(i)} className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition flex items-center justify-center">
-                      <X size={16} />
+                <div key={i} className="bg-gray-50 dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg p-4">
+                  {/* Row 1: Mark, Truck, Total, Delete */}
+                  <div className="flex items-end gap-3 mb-3">
+                    <div className="flex-1 min-w-[140px]">
+                      <label className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Mark *</label>
+                      <input className={textCls} placeholder="e.g. KG" value={row.mark}
+                        onChange={e => setRow(i, { mark: e.target.value })} />
+                    </div>
+                    <div className="w-[130px]">
+                      <label className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Truck No</label>
+                      <input className={textCls} placeholder="e.g. TN-01" value={row.truck_no}
+                        onChange={e => setRow(i, { truck_no: e.target.value })} />
+                    </div>
+                    <div className="w-[70px]">
+                      <label className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Total</label>
+                      <div className="bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1.5 text-gray-600 dark:text-gray-300 text-sm text-right font-semibold">{total > 0 ? total : "—"}</div>
+                    </div>
+                    <button onClick={() => removeRow(i)} className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition flex items-center justify-center pb-1">
+                      <X size={18} />
                     </button>
+                  </div>
+                  {/* Row 2: Three tier groups */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {/* Tier 1 — 5kg */}
+                    <div className="bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-[#30363d] rounded-lg p-2.5">
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold mb-1.5">Tier 1 <span className="text-gray-400 dark:text-gray-600">(5kg)</span></div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] text-orange-500 dark:text-orange-400 block mb-0.5">Sub</label>
+                          <input className={submarkCls} placeholder="sub1" value={row.submark1}
+                            onChange={e => setRow(i, { submark1: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-0.5">Qty</label>
+                          <input className={numCls} type="number" min="0" value={row.qty1}
+                            onChange={e => setRow(i, { qty1: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-blue-500 dark:text-blue-400 block mb-0.5">Rate</label>
+                          <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate1}
+                            onChange={e => setRow(i, { rate1: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Tier 2 — 10kg */}
+                    <div className="bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-[#30363d] rounded-lg p-2.5">
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold mb-1.5">Tier 2 <span className="text-gray-400 dark:text-gray-600">(10kg)</span></div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] text-orange-500 dark:text-orange-400 block mb-0.5">Sub</label>
+                          <input className={submarkCls} placeholder="sub2" value={row.submark2}
+                            onChange={e => setRow(i, { submark2: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-0.5">Qty</label>
+                          <input className={numCls} type="number" min="0" value={row.qty2}
+                            onChange={e => setRow(i, { qty2: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-blue-500 dark:text-blue-400 block mb-0.5">Rate</label>
+                          <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate2}
+                            onChange={e => setRow(i, { rate2: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Tier 3 — 15kg */}
+                    <div className="bg-white dark:bg-[#0d1117] border border-gray-200 dark:border-[#30363d] rounded-lg p-2.5">
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold mb-1.5">Tier 3 <span className="text-gray-400 dark:text-gray-600">(15kg)</span></div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] text-orange-500 dark:text-orange-400 block mb-0.5">Sub</label>
+                          <input className={submarkCls} placeholder="sub3" value={row.submark3}
+                            onChange={e => setRow(i, { submark3: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-0.5">Qty</label>
+                          <input className={numCls} type="number" min="0" value={row.qty3}
+                            onChange={e => setRow(i, { qty3: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-blue-500 dark:text-blue-400 block mb-0.5">Rate</label>
+                          <input className={rateNumCls} type="number" min="0" step="0.01" value={row.rate3}
+                            onChange={e => setRow(i, { rate3: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-2 flex items-center gap-2">

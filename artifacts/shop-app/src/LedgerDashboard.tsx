@@ -131,22 +131,116 @@ export default function LedgerDashboard({ settings }: Props) {
     XLSX.writeFile(wb, "Vizianagram_Mangoes_Ledger.xlsx");
   }
 
-  function exportInvoicePDF() {
+  async function exportInvoicePDF() {
+    // Load image as base64
+    function loadImg(src: string): Promise<string | null> {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const c = document.createElement("canvas");
+          c.width = img.naturalWidth; c.height = img.naturalHeight;
+          c.getContext("2d")!.drawImage(img, 0, 0);
+          resolve(c.toDataURL("image/png"));
+        };
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    }
+    // Load signature image, strip white/grey background, keep only blue ink
+    function loadSign(src: string): Promise<string | null> {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0);
+          const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const px = id.data;
+          // Find bounding box of ink pixels to crop tightly
+          let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+          for (let py = 0; py < canvas.height; py++) {
+            for (let px2 = 0; px2 < canvas.width; px2++) {
+              const i = (py * canvas.width + px2) * 4;
+              const brightness = px[i] * 0.299 + px[i+1] * 0.587 + px[i+2] * 0.114;
+              if (brightness < 160) {
+                if (px2 < minX) minX = px2;
+                if (px2 > maxX) maxX = px2;
+                if (py < minY) minY = py;
+                if (py > maxY) maxY = py;
+              }
+            }
+          }
+          if (maxX <= minX || maxY <= minY) { resolve(null); return; }
+          // Add small padding
+          const pad = 10;
+          minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+          maxX = Math.min(canvas.width - 1, maxX + pad); maxY = Math.min(canvas.height - 1, maxY + pad);
+          const cw = maxX - minX + 1, ch = maxY - minY + 1;
+          // Create cropped canvas with only ink
+          const out = document.createElement("canvas");
+          out.width = cw; out.height = ch;
+          const octx = out.getContext("2d")!;
+          const cropped = ctx.getImageData(minX, minY, cw, ch);
+          const d = cropped.data;
+          for (let i = 0; i < d.length; i += 4) {
+            const brightness = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+            if (brightness > 160) {
+              // Background → transparent
+              d[i+3] = 0;
+            } else {
+              // Ink → dark blue, opacity proportional to darkness
+              const alpha = Math.min(255, Math.round((160 - brightness) * 2.5));
+              d[i] = 20; d[i+1] = 20; d[i+2] = 120;
+              d[i+3] = alpha;
+            }
+          }
+          octx.putImageData(cropped, 0, 0);
+          resolve(out.toDataURL("image/png"));
+        };
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    }
+    const [watermarkData, signData] = await Promise.all([
+      loadImg("/mango.png"),
+      loadSign("/sign.png"),
+    ]);
+
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
     let y = 15;
 
     const sep70 = "=".repeat(72);
     const sep50 = "-".repeat(72);
 
+    // Watermark helper — adds centered semi-transparent watermark to current page
+    function addWatermark() {
+      if (!watermarkData) return;
+      const gState = new (doc as any).GState({ opacity: 0.07 });
+      doc.saveGraphicsState();
+      doc.setGState(gState);
+      const wmW = 80, wmH = 100;
+      doc.addImage(watermarkData, "PNG", (W - wmW) / 2, (H - wmH) / 2, wmW, wmH);
+      doc.restoreGraphicsState();
+    }
+
+    // Helper to add new page with watermark
+    function newPage() { doc.addPage(); y = 15; addWatermark(); }
+
+    addWatermark(); // First page
+
     // COMPANY HEADER
     doc.setFontSize(15); doc.setFont("helvetica", "bold"); doc.setTextColor(0, 0, 0);
-    doc.text("GANGARAM MUL CHAND & CO", W / 2, y, { align: "center" });
+    doc.text("CHIRAG FRUITS IMPEX", W / 2, y, { align: "center" });
     y += 6;
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal");
-    doc.text("B-153, New Subzi Mandi, Azadpur Delhi - 110 033", W / 2, y, { align: "center" });
+    doc.text("B 153 First Floor, New Subzi Mandi, Azadpur Delhi - 110 033", W / 2, y, { align: "center" });
     y += 5;
-    doc.text("PH: (+91) 9313 80615", W / 2, y, { align: "center" });
+    doc.text("PH: (+91) 98112 51289, 98113 80615", W / 2, y, { align: "center" });
     y += 4;
     doc.setFontSize(7); doc.text(sep70, W / 2, y, { align: "center" }); y += 5;
 
@@ -160,14 +254,19 @@ export default function LedgerDashboard({ settings }: Props) {
 
     doc.setFontSize(9); doc.setFont("helvetica", "normal");
     doc.text(growerLabel, 10, y);
-    doc.setFont("helvetica", "bold"); doc.text("VATAK", W / 2, y, { align: "center" });
     y += 5;
     doc.setFont("helvetica", "normal");
     doc.text(`Bill No: ${billNo}`, W - 10, y - 5, { align: "right" });
     doc.text(`Prgs: ${fmtINR(totalPkgs, 0)}`, W - 10, y, { align: "right" });
     y += 5;
+    const entryDates = filtered.map(e => e.date).sort();
+    const dateRange = entryDates.length > 0
+      ? (entryDates[0] === entryDates[entryDates.length - 1]
+        ? formatDateDMY(entryDates[0])
+        : `${formatDateDMY(entryDates[0])} to ${formatDateDMY(entryDates[entryDates.length - 1])}`)
+      : today;
     doc.text(`Veh: ${allTrucks.slice(0, 3).join(", ") || "—"}`, 10, y);
-    doc.text(`Date: ${today} (Purchasing)`, W - 10, y, { align: "right" });
+    doc.text(`Date: ${dateRange}`, W - 10, y, { align: "right" });
     y += 4;
 
     // DESCRIPTIONS (from entries)
@@ -176,7 +275,7 @@ export default function LedgerDashboard({ settings }: Props) {
       y += 3;
       doc.setFontSize(8.5); doc.setFont("helvetica", "italic");
       descriptions.forEach(desc => {
-        if (y > 270) { doc.addPage(); y = 15; }
+        if (y > 270) { newPage(); }
         doc.text(`Note: ${desc}`, 10, y);
         y += 4;
       });
@@ -186,9 +285,10 @@ export default function LedgerDashboard({ settings }: Props) {
     doc.setFontSize(7); doc.text(sep70, W / 2, y, { align: "center" }); y += 5;
 
     // TABLE HEADER
-    const C = { sl: 10, desc: 18, qty: 108, rate: 135, amt: 163, exp: 182, net: 200 };
+    const C = { sl: 10, date: 18, desc: 40, qty: 112, rate: 138, amt: 165, exp: 184, net: 200 };
     doc.setFontSize(9); doc.setFont("helvetica", "bold");
     doc.text("SL", C.sl, y);
+    doc.text("Date", C.date, y);
     doc.text("Description", C.desc, y);
     doc.text("Quantity", C.qty, y, { align: "right" });
     doc.text("Rate", C.rate, y, { align: "right" });
@@ -202,8 +302,9 @@ export default function LedgerDashboard({ settings }: Props) {
     doc.setFont("helvetica", "normal"); doc.setFontSize(9);
     let sl = 1, gAmt = 0, gExp = 0, gNet = 0, gQty = 0;
     filtered.forEach(entry => {
+      const entryDate = formatDateDMY(entry.date);
       (entry.rows ?? []).forEach(row => {
-        if (y > 250) { doc.addPage(); y = 15; }
+        if (y > 250) { newPage(); }
         const c = calcRow(row as any, settings);
         gAmt += c.amount; gExp += c.expenses; gNet += c.net; gQty += Number(row.total_qty);
         const avgRate = Number(row.total_qty) > 0 ? c.amount / Number(row.total_qty) : 0;
@@ -211,7 +312,8 @@ export default function LedgerDashboard({ settings }: Props) {
         const subs = [row.submark1, row.submark2, row.submark3].filter(Boolean);
         const descText = subs.length > 0 ? `${row.mark} (${subs.join(", ")})` : row.mark;
         doc.text(String(sl++), C.sl, y);
-        doc.text(descText.slice(0, 36), C.desc, y);
+        doc.text(entryDate, C.date, y);
+        doc.text(descText.slice(0, 28), C.desc, y);
         doc.text(fmtINR(Number(row.total_qty), 2), C.qty, y, { align: "right" });
         doc.text(fmtINR(avgRate, 2), C.rate, y, { align: "right" });
         doc.text(fmtINR(c.amount, 2), C.amt, y, { align: "right" });
@@ -244,15 +346,30 @@ export default function LedgerDashboard({ settings }: Props) {
     doc.setFontSize(7); doc.text(sep70, W / 2, y, { align: "center" }); y += 8;
 
     // FOOTER
+    if (y > 240) { newPage(); }
     doc.setFont("helvetica", "normal"); doc.setFontSize(8);
     doc.text("E.&O.E.", C.sl, y); y += 5;
     doc.text("All disputes subject to Delhi Jurisdiction only.", C.sl, y); y += 5;
     doc.text("We are not responsible for damage/shortage in weight/contents.", C.sl, y); y += 5;
-    doc.text("Expenses have been charged according to our shop.", C.sl, y); y += 12;
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-    doc.text("For GANGARAM MULCHAND & CO", W - 10, y, { align: "right" });
+    doc.text("Expenses have been charged according to our shop.", C.sl, y); y += 10;
 
-    doc.save("GXM_Invoice.pdf");
+    // Signature from sign.png (ink only, background removed)
+    if (signData) {
+      const sigW = 45, sigH = 18;
+      doc.addImage(signData, "PNG", W - 10 - sigW, y - 1, sigW, sigH);
+      y += sigH + 3;
+    } else {
+      // Fallback text signature
+      doc.setFont("times", "bolditalic"); doc.setFontSize(22);
+      doc.setTextColor(20, 20, 120);
+      doc.text("Prakash", W - 14, y + 6, { align: "right" });
+      doc.setTextColor(0, 0, 0);
+      y += 14;
+    }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+    doc.text("For CHIRAG FRUITS IMPEX", W - 10, y, { align: "right" });
+
+    doc.save("CFI_Invoice.pdf");
   }
 
   const dateGroups = useMemo(() => {
