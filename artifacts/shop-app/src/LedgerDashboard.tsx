@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Filter, Download, Plus, Pencil, Trash2 } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -22,7 +22,17 @@ export default function LedgerDashboard({ settings }: Props) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [payFilter, setPayFilter] = useState<"all" | "paid" | "unpaid">("all");
-  const [markFilter, setMarkFilter] = useState<string>("all");
+  const [markFilter, setMarkFilter] = useState<Set<string>>(new Set());
+  const [showMarkDropdown, setShowMarkDropdown] = useState(false);
+  const markDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (markDropdownRef.current && !markDropdownRef.current.contains(e.target as Node)) setShowMarkDropdown(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [modal, setModal] = useState<{ mode: "new" | "edit"; entry?: LedgerEntry } | null>(null);
 
@@ -59,8 +69,8 @@ export default function LedgerDashboard({ settings }: Props) {
       if (fromDate && e.date < fromDate) return false;
       if (toDate && e.date > toDate) return false;
       if (payFilter !== "all" && e.payment_status !== payFilter) return false;
-      if (markFilter !== "all") {
-        const hasMatch = (e.rows ?? []).some(r => r.mark === markFilter);
+      if (markFilter.size > 0) {
+        const hasMatch = (e.rows ?? []).some(r => markFilter.has(r.mark));
         if (!hasMatch) return false;
       }
       if (search) {
@@ -145,9 +155,11 @@ export default function LedgerDashboard({ settings }: Props) {
     const totalPkgs = filtered.reduce((s, e) => s + (e.rows ?? []).reduce((r, row) => r + Number(row.total_qty), 0), 0);
     const allTrucks = [...new Set(filtered.flatMap(e => (e.rows ?? []).map(r => r.truck_no).filter(Boolean)))];
     const billNo = String(filtered.length > 0 ? filtered[0].id : 1).padStart(6, "0");
+    const growerNames = [...new Set(filtered.map(e => e.grower_name).filter(Boolean))];
+    const growerLabel = growerNames.length > 0 ? `M/s ${growerNames.join(", ")} - Vizianagram` : "M/s Vizianagram";
 
     doc.setFontSize(9); doc.setFont("helvetica", "normal");
-    doc.text("M/s L.M.H - Vizianagram", 10, y);
+    doc.text(growerLabel, 10, y);
     doc.setFont("helvetica", "bold"); doc.text("VATAK", W / 2, y, { align: "center" });
     y += 5;
     doc.setFont("helvetica", "normal");
@@ -191,12 +203,15 @@ export default function LedgerDashboard({ settings }: Props) {
     let sl = 1, gAmt = 0, gExp = 0, gNet = 0, gQty = 0;
     filtered.forEach(entry => {
       (entry.rows ?? []).forEach(row => {
-        if (y > 260) { doc.addPage(); y = 15; }
+        if (y > 250) { doc.addPage(); y = 15; }
         const c = calcRow(row as any, settings);
         gAmt += c.amount; gExp += c.expenses; gNet += c.net; gQty += Number(row.total_qty);
         const avgRate = Number(row.total_qty) > 0 ? c.amount / Number(row.total_qty) : 0;
+        // Build description with submarks
+        const subs = [row.submark1, row.submark2, row.submark3].filter(Boolean);
+        const descText = subs.length > 0 ? `${row.mark} (${subs.join(", ")})` : row.mark;
         doc.text(String(sl++), C.sl, y);
-        doc.text(row.mark.slice(0, 28), C.desc, y);
+        doc.text(descText.slice(0, 36), C.desc, y);
         doc.text(fmtINR(Number(row.total_qty), 2), C.qty, y, { align: "right" });
         doc.text(fmtINR(avgRate, 2), C.rate, y, { align: "right" });
         doc.text(fmtINR(c.amount, 2), C.amt, y, { align: "right" });
@@ -310,13 +325,26 @@ export default function LedgerDashboard({ settings }: Props) {
             <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
               className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500" />
           </div>
-          <div>
-            <label className="text-xs text-gray-500 block mb-1">Mark</label>
-            <select value={markFilter} onChange={e => setMarkFilter(e.target.value)}
-              className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500 min-w-[120px]">
-              <option value="all">All Marks</option>
-              {allMarks.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+          <div className="relative" ref={markDropdownRef}>
+            <label className="text-xs text-gray-500 block mb-1">Mark {markFilter.size > 0 && <span className="text-blue-500">({markFilter.size})</span>}</label>
+            <button onClick={() => setShowMarkDropdown(v => !v)}
+              className="bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-500 min-w-[140px] text-left flex items-center justify-between gap-2">
+              <span>{markFilter.size === 0 ? "All Marks" : `${markFilter.size} selected`}</span>
+              <span className="text-gray-400">▾</span>
+            </button>
+            {showMarkDropdown && (
+              <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg shadow-lg max-h-48 overflow-y-auto min-w-[160px]">
+                {allMarks.length === 0 && <div className="px-3 py-2 text-xs text-gray-400">No marks</div>}
+                {allMarks.map(m => (
+                  <label key={m} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-[#1c2333] cursor-pointer text-xs text-gray-800 dark:text-gray-200">
+                    <input type="checkbox" checked={markFilter.has(m)}
+                      onChange={() => setMarkFilter(prev => { const n = new Set(prev); if (n.has(m)) n.delete(m); else n.add(m); return n; })}
+                      className="rounded border-gray-300 dark:border-gray-600" />
+                    {m}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs text-gray-500 block mb-1">Payment</label>
@@ -328,6 +356,13 @@ export default function LedgerDashboard({ settings }: Props) {
                 </button>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">&nbsp;</label>
+            <button onClick={() => { setFromDate(""); setToDate(""); setPayFilter("all"); setMarkFilter(new Set()); setSearch(""); setShowMarkDropdown(false); }}
+              className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-800/50 transition">
+              Reset All
+            </button>
           </div>
         </div>
       )}
@@ -571,9 +606,9 @@ export default function LedgerDashboard({ settings }: Props) {
           settings={settings}
           saving={createMut.isPending || updateMut.isPending}
           onClose={() => setModal(null)}
-          onSave={(date, description, rows) => {
-            if (modal.mode === "new") createMut.mutate({ date, description, rows });
-            else if (modal.entry) updateMut.mutate({ id: modal.entry.id, data: { date, description, rows } });
+          onSave={(date, description, grower_name, rows) => {
+            if (modal.mode === "new") createMut.mutate({ date, description, grower_name, rows });
+            else if (modal.entry) updateMut.mutate({ id: modal.entry.id, data: { date, description, grower_name, rows } });
           }}
         />
       )}

@@ -16,6 +16,7 @@ async function ensureSchema() {
       id SERIAL PRIMARY KEY,
       date DATE NOT NULL,
       description TEXT DEFAULT '',
+      grower_name TEXT DEFAULT '',
       payment_status TEXT DEFAULT 'unpaid',
       created_at TIMESTAMP DEFAULT NOW()
     )
@@ -61,6 +62,8 @@ async function ensureSchema() {
   await db.execute(sql`
     ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''
   `);
+  // Migration: add grower_name column if missing
+  await db.execute(sql`ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS grower_name TEXT DEFAULT ''`);
   // Migration: add submark columns if missing
   await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS submark1 TEXT DEFAULT ''`);
   await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS submark2 TEXT DEFAULT ''`);

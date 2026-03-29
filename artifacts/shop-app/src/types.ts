@@ -23,6 +23,7 @@ export interface LedgerEntry {
   id: number;
   date: string;
   description: string;
+  grower_name: string;
   payment_status: "paid" | "unpaid";
   created_at: string;
   rows: LedgerRow[];
