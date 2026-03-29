@@ -32,9 +32,9 @@ ledgerRouter.post("/ledger/entries", async (req, res) => {
       const totalQty = (Number(r.qty1)||0) + (Number(r.qty2)||0) + (Number(r.qty3)||0);
       await db.execute(sql`
         INSERT INTO ledger_rows (entry_id, mark, submark1, qty1, rate1, submark2, qty2, rate2, submark3, qty3, rate3, total_qty, truck_no,
-          override_station, override_commission, override_truck, override_pt)
+          override_station, override_commission, override_truck, override_pt, override_custom)
         VALUES (${entry.id}, ${r.mark||''}, ${r.submark1||''}, ${r.qty1||0}, ${r.rate1||0}, ${r.submark2||''}, ${r.qty2||0}, ${r.rate2||0}, ${r.submark3||''}, ${r.qty3||0}, ${r.rate3||0}, ${totalQty}, ${r.truck_no||null},
-          ${r.override_station??null}, ${r.override_commission??null}, ${r.override_truck??null}, ${r.override_pt??null})
+          ${r.override_station??null}, ${r.override_commission??null}, ${r.override_truck??null}, ${r.override_pt??null}, ${JSON.stringify(r.override_custom ?? {})})
       `);
     }
     const result = (await db.execute(sql`
@@ -68,9 +68,9 @@ ledgerRouter.put("/ledger/entries/:id", async (req, res) => {
         const totalQty = (Number(r.qty1)||0) + (Number(r.qty2)||0) + (Number(r.qty3)||0);
         await db.execute(sql`
           INSERT INTO ledger_rows (entry_id, mark, submark1, qty1, rate1, submark2, qty2, rate2, submark3, qty3, rate3, total_qty, truck_no,
-            override_station, override_commission, override_truck, override_pt)
+            override_station, override_commission, override_truck, override_pt, override_custom)
           VALUES (${id}, ${r.mark||''}, ${r.submark1||''}, ${r.qty1||0}, ${r.rate1||0}, ${r.submark2||''}, ${r.qty2||0}, ${r.rate2||0}, ${r.submark3||''}, ${r.qty3||0}, ${r.rate3||0}, ${totalQty}, ${r.truck_no||null},
-            ${r.override_station??null}, ${r.override_commission??null}, ${r.override_truck??null}, ${r.override_pt??null})
+            ${r.override_station??null}, ${r.override_commission??null}, ${r.override_truck??null}, ${r.override_pt??null}, ${JSON.stringify(r.override_custom ?? {})})
         `);
       }
     }

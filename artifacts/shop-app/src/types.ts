@@ -17,6 +17,7 @@ export interface LedgerRow {
   override_commission: number | null;
   override_truck: number | null;
   override_pt: number | null;
+  override_custom: Record<string, number> | null;
 }
 
 export interface LedgerEntry {

@@ -40,7 +40,8 @@ async function ensureSchema() {
       override_station NUMERIC(12,2),
       override_commission NUMERIC(12,2),
       override_truck NUMERIC(12,2),
-      override_pt NUMERIC(12,2)
+      override_pt NUMERIC(12,2),
+      override_custom JSONB DEFAULT '{}'
     )
   `);
   await db.execute(sql`
@@ -68,6 +69,8 @@ async function ensureSchema() {
   await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS submark1 TEXT DEFAULT ''`);
   await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS submark2 TEXT DEFAULT ''`);
   await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS submark3 TEXT DEFAULT ''`);
+  // Migration: add override_custom column if missing
+  await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS override_custom JSONB DEFAULT '{}'`);
 }
 
 async function main() {

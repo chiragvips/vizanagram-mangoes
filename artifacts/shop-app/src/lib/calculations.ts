@@ -29,8 +29,12 @@ export function calcRow(row: LedgerRow, s: CalcSettings): RowCalc {
 
   const customValues: Record<string, number> = {};
   let customTotal = 0;
+  const oc = (row as any).override_custom ?? {};
   for (const cf of s.custom_fields ?? []) {
-    const val = cf.per_unit ? totalQty * Number(cf.default_value) : Number(cf.default_value);
+    const hasOverride = oc[cf.name] !== undefined && oc[cf.name] !== null && oc[cf.name] !== "";
+    const val = hasOverride
+      ? Number(oc[cf.name])
+      : (cf.per_unit ? totalQty * Number(cf.default_value) : Number(cf.default_value));
     customValues[cf.name] = val;
     customTotal += val;
   }

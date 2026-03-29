@@ -14,6 +14,7 @@ interface RowDraft {
   override_commission: string;
   override_truck: string;
   override_pt: string;
+  override_custom: Record<string, string>;
 }
 
 function emptyRow(): RowDraft {
@@ -23,10 +24,18 @@ function emptyRow(): RowDraft {
     submark3: "", qty3: "0", rate3: "0.00",
     truck_no: "", override: false,
     override_station: "", override_commission: "", override_truck: "", override_pt: "",
+    override_custom: {},
   };
 }
 
 function draftToRow(d: RowDraft): Partial<LedgerRow> {
+  // Build override_custom: only include fields with non-empty values
+  const oc: Record<string, number> = {};
+  if (d.override) {
+    for (const [k, v] of Object.entries(d.override_custom)) {
+      if (v !== "") oc[k] = Number(v);
+    }
+  }
   return {
     mark: d.mark,
     submark1: d.submark1, qty1: Number(d.qty1)||0, rate1: Number(d.rate1)||0,
@@ -38,6 +47,7 @@ function draftToRow(d: RowDraft): Partial<LedgerRow> {
     override_commission: d.override && d.override_commission !== "" ? Number(d.override_commission) : null,
     override_truck: d.override && d.override_truck !== "" ? Number(d.override_truck) : null,
     override_pt: d.override && d.override_pt !== "" ? Number(d.override_pt) : null,
+    override_custom: Object.keys(oc).length > 0 ? oc : null,
   };
 }
 
@@ -63,11 +73,12 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
         submark2: r.submark2 ?? "", qty2: String(r.qty2 ?? 0), rate2: String(r.rate2 ?? 0),
         submark3: r.submark3 ?? "", qty3: String(r.qty3 ?? 0), rate3: String(r.rate3 ?? 0),
         truck_no: r.truck_no ?? "",
-        override: r.override_station !== null || r.override_commission !== null || r.override_truck !== null || r.override_pt !== null,
+        override: r.override_station != null || r.override_commission != null || r.override_truck != null || r.override_pt != null || Object.keys(r.override_custom ?? {}).length > 0,
         override_station: r.override_station !== null ? String(r.override_station) : "",
         override_commission: r.override_commission !== null ? String(r.override_commission) : "",
         override_truck: r.override_truck !== null ? String(r.override_truck) : "",
         override_pt: r.override_pt !== null ? String(r.override_pt) : "",
+        override_custom: Object.fromEntries(Object.entries(r.override_custom ?? {}).map(([k, v]) => [k, String(v)])),
       }));
     }
     return [emptyRow()];
@@ -232,6 +243,16 @@ export default function EntryModal({ mode, entry, settings, onSave, onClose, sav
                             placeholder="auto"
                             value={(row as any)[field]}
                             onChange={e => setRow(i, { [field]: e.target.value } as any)} />
+                        </div>
+                      ))}
+                      {(settings.custom_fields ?? []).map(f => (
+                        <div key={f.name}>
+                          <label className="text-xs text-purple-500 dark:text-purple-400 mb-1 block">{f.name} (₹ total)</label>
+                          <input className="w-full bg-purple-50 dark:bg-[#1a1030] border border-purple-300 dark:border-purple-700 rounded px-2 py-1.5 text-gray-900 dark:text-white text-sm text-right focus:outline-none focus:border-purple-500"
+                            type="number" step="0.01"
+                            placeholder={String(f.default_value)}
+                            value={row.override_custom[f.name] ?? ""}
+                            onChange={e => setRow(i, { override_custom: { ...row.override_custom, [f.name]: e.target.value } })} />
                         </div>
                       ))}
                     </div>

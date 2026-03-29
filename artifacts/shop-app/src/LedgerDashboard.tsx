@@ -620,16 +620,12 @@ export default function LedgerDashboard({ settings }: Props) {
                           <div className="text-[10px]">{fmtINR(c.total_net_per_box, 2)}/box</div>
                         </td>
                         <td className={tdCls}>
-                          {isFirstRow ? (
-                            <select value={entry.payment_status}
-                              onChange={e => payMut.mutate({ id: entry.id, status: e.target.value })}
-                              className={`text-xs px-2 py-1 rounded border focus:outline-none ${entry.payment_status==="paid" ? "bg-green-50 dark:bg-green-900/40 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300" : "bg-purple-50 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300"}`}>
-                              <option value="unpaid">Unpaid</option>
-                              <option value="paid">Paid</option>
-                            </select>
-                          ) : (
-                            <span className="text-[10px] text-gray-400 dark:text-gray-600">{rowCount} rows</span>
-                          )}
+                          <select value={entry.payment_status}
+                            onChange={e => payMut.mutate({ id: entry.id, status: e.target.value })}
+                            className={`text-xs px-2 py-1 rounded border focus:outline-none ${entry.payment_status==="paid" ? "bg-green-50 dark:bg-green-900/40 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300" : "bg-purple-50 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300"}`}>
+                            <option value="unpaid">Unpaid</option>
+                            <option value="paid">Paid</option>
+                          </select>
                         </td>
                         <td className={tdCls}>
                           {isFirstRow && (
