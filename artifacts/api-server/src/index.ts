@@ -37,6 +37,7 @@ async function ensureSchema() {
       rate3 NUMERIC(10,2) DEFAULT 0,
       total_qty NUMERIC(10,2) DEFAULT 0,
       truck_no TEXT,
+      payment_status TEXT DEFAULT 'unpaid',
       override_station NUMERIC(12,2),
       override_commission NUMERIC(12,2),
       override_truck NUMERIC(12,2),
@@ -71,6 +72,8 @@ async function ensureSchema() {
   await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS submark3 TEXT DEFAULT ''`);
   // Migration: add override_custom column if missing
   await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS override_custom JSONB DEFAULT '{}'`);
+  // Migration: add payment_status column to ledger_rows if missing
+  await db.execute(sql`ALTER TABLE ledger_rows ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'unpaid'`);
 }
 
 async function main() {

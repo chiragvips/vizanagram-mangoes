@@ -1,0 +1,50 @@
+Run instructions for Vizianagram Mangoes
+
+This file contains copy-paste commands to get the project running quickly on Windows (PowerShell) and Unix (bash). Use PowerShell as the scripts assume PowerShell syntax.
+
+1) Start PostgreSQL (Docker)
+
+# Run new container (first time)
+docker run -d --name vizanagram-pg \
+  -e POSTGRES_USER=vizuser \
+  -e POSTGRES_PASSWORD=vizpass \
+  -e POSTGRES_DB=vizanagram \
+  -p 5432:5432 \
+  postgres:16-alpine
+
+# Or start existing container
+# docker start vizanagram-pg
+
+2) Ensure environment file
+
+# PowerShell
+Copy-Item .env.example .env -ErrorAction SilentlyContinue
+
+# Bash
+cp .env.example .env || true
+
+3) Install dependencies (use --ignore-scripts on Windows if preinstall fails)
+
+pnpm install --ignore-scripts
+
+4) Start backend and frontend (open two terminals)
+
+# Terminal A — Backend (PowerShell)
+$Env:DATABASE_URL='postgresql://vizuser:vizpass@localhost:5432/vizanagram'
+$Env:PORT='3000'
+cd artifacts\api-server
+pnpm run dev
+
+# Terminal B — Frontend (PowerShell)
+cd artifacts\shop-app
+pnpm run dev
+
+Notes / Troubleshooting
+- If you see errors about `NODE_OPTIONS` on Windows, the repository already includes a cross-platform `dev` script in `artifacts/api-server/package.json` that uses `cross-env`.
+- If `pnpm install` fails due to the root `preinstall` script on Windows, use `pnpm install --ignore-scripts` (this is safe for development).
+- If the frontend shows "loading" forever, open browser DevTools → Network and check calls to `/api/*`. Confirm backend is reachable at `http://localhost:3000` and that `http://localhost:3000/api/health` returns 200.
+- To run a production build:
+  pnpm run build
+  DATABASE_URL=postgresql://vizuser:vizpass@localhost:5432/vizanagram node artifacts/api-server/dist/index.cjs
+
+If anything fails, paste the terminal output and I'll help fix it.

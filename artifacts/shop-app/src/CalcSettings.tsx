@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, Percent, Truck, FileText, Plus, Save, X } from "lucide-react";
+import { Activity, Percent, Truck, FileText, Plus, Save, X, Pencil, Check } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CalcSettings, CustomField } from "./types";
 import { saveSettings } from "./lib/api";
@@ -15,6 +15,11 @@ export default function CalcSettingsPage({ settings, onSaved }: Props) {
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldVal, setNewFieldVal] = useState("0");
   const [newFieldPerUnit, setNewFieldPerUnit] = useState(false);
+  // Inline editing state for existing custom fields
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editVal, setEditVal] = useState("");
+  const [editPerUnit, setEditPerUnit] = useState(false);
 
   const saveMut = useMutation({
     mutationFn: () => saveSettings({
@@ -33,6 +38,20 @@ export default function CalcSettingsPage({ settings, onSaved }: Props) {
     setNewFieldName(""); setNewFieldVal("0"); setNewFieldPerUnit(false);
   }
   function removeField(i: number) { setCustomFields(prev => prev.filter((_, idx) => idx !== i)); }
+  function startEdit(i: number) {
+    setEditingIdx(i);
+    setEditName(customFields[i].name);
+    setEditVal(String(customFields[i].default_value));
+    setEditPerUnit(customFields[i].per_unit);
+  }
+  function cancelEdit() { setEditingIdx(null); }
+  function saveEdit() {
+    if (editingIdx === null || !editName.trim()) return;
+    setCustomFields(prev => prev.map((cf, i) =>
+      i === editingIdx ? { name: editName.trim(), default_value: Number(editVal) || 0, per_unit: editPerUnit } : cf
+    ));
+    setEditingIdx(null);
+  }
 
   const inputCls = "bg-gray-100 dark:bg-[#161b22] border border-gray-200 dark:border-[#30363d] rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-52";
 
@@ -72,12 +91,33 @@ export default function CalcSettingsPage({ settings, onSaved }: Props) {
             <h3 className="text-gray-900 dark:text-white font-semibold text-sm">Custom Fields</h3>
             {customFields.map((cf, i) => (
               <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-[#30363d] last:border-0">
-                <div className="flex items-center gap-3">
-                  <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                  <span className="text-gray-800 dark:text-gray-200 text-sm font-medium">{cf.name}</span>
-                  <span className="text-gray-500 dark:text-gray-500 text-xs bg-gray-100 dark:bg-[#1c2333] px-2 py-0.5 rounded">₹{cf.default_value}{cf.per_unit ? " per unit" : " flat"}</span>
-                </div>
-                <button onClick={() => removeField(i)} className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition p-1"><X size={14} /></button>
+                {editingIdx === i ? (
+                  <div className="flex items-center gap-2 flex-1 flex-wrap">
+                    <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Field name"
+                      className="bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 w-36" />
+                    <input type="number" value={editVal} onChange={e => setEditVal(e.target.value)} placeholder="Value"
+                      className="bg-gray-100 dark:bg-[#1c2333] border border-gray-200 dark:border-[#30363d] rounded px-2 py-1 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 w-20" />
+                    <label className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+                      <input type="checkbox" checked={editPerUnit} onChange={e => setEditPerUnit(e.target.checked)}
+                        className="rounded border-gray-300 dark:border-gray-600" />
+                      Per unit
+                    </label>
+                    <button onClick={saveEdit} className="text-green-500 hover:text-green-400 transition p-1"><Check size={14} /></button>
+                    <button onClick={cancelEdit} className="text-gray-400 hover:text-red-500 transition p-1"><X size={14} /></button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                      <span className="text-gray-800 dark:text-gray-200 text-sm font-medium">{cf.name}</span>
+                      <span className="text-gray-500 dark:text-gray-500 text-xs bg-gray-100 dark:bg-[#1c2333] px-2 py-0.5 rounded">₹{cf.default_value}{cf.per_unit ? " per unit" : " flat"}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => startEdit(i)} className="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition p-1"><Pencil size={14} /></button>
+                      <button onClick={() => removeField(i)} className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition p-1"><X size={14} /></button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

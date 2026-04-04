@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "NODE_OPTIONS='--conditions=workspace' tsx watch src/index.ts",
+    "dev": "cross-env NODE_OPTIONS=--conditions=workspace tsx watch src/index.ts",
     "build": "node esbuild.config.mjs",
     "typecheck": "tsc --noEmit"
   },
@@ -23,6 +23,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.3",
     "@types/node": "catalog:",
+    "cross-env": "^7.0.3",
     "esbuild": "0.27.3",
     "tsx": "catalog:",
     "typescript": "~5.9.2"

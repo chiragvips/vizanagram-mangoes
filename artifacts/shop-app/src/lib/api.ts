@@ -34,6 +34,13 @@ export async function bulkDeleteEntries(ids: number[]): Promise<void> {
   });
 }
 
+export async function updateRowPaymentStatus(rowId: number, payment_status: "paid" | "unpaid"): Promise<void> {
+  const r = await fetch(`${BASE}/ledger/rows/${rowId}/payment`, {
+    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payment_status }),
+  });
+  if (!r.ok) throw new Error("update row payment status failed");
+}
+
 export async function getSettings(): Promise<CalcSettings> {
   const r = await fetch(`${BASE}/ledger/settings`);
   if (!r.ok) throw new Error("fetch settings failed");

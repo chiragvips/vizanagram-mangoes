@@ -13,6 +13,7 @@ export interface LedgerRow {
   rate3: number;
   total_qty: number;
   truck_no: string;
+  payment_status: "paid" | "unpaid";
   override_station: number | null;
   override_commission: number | null;
   override_truck: number | null;

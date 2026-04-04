@@ -5,7 +5,7 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import type { LedgerEntry, CalcSettings } from "./types";
 import { calcRow, fmtINR } from "./lib/calculations";
-import { getEntries, createEntry, updateEntry, deleteEntry, bulkDeleteEntries } from "./lib/api";
+import { getEntries, createEntry, updateEntry, deleteEntry, bulkDeleteEntries, updateRowPaymentStatus } from "./lib/api";
 import EntryModal from "./components/EntryModal";
 
 interface Props { settings: CalcSettings; }
@@ -36,11 +36,19 @@ export default function LedgerDashboard({ settings }: Props) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [modal, setModal] = useState<{ mode: "new" | "edit"; entry?: LedgerEntry } | null>(null);
 
-  // Collect all unique marks for the dropdown filter
+  // Collect all unique marks for the dropdown filter (case-insensitive, skip empty)
   const allMarks = useMemo(() => {
-    const marks = new Set<string>();
-    entries.forEach(e => (e.rows ?? []).forEach(r => { if (r.mark) marks.add(r.mark); }));
-    return Array.from(marks).sort();
+    const marks = new Map<string, string>(); // lowercase -> original case
+    entries.forEach(e => (e.rows ?? []).forEach(r => {
+      const m = r.mark?.trim();
+      if (m) {
+        const lower = m.toLowerCase();
+        if (!marks.has(lower)) {
+          marks.set(lower, m);
+        }
+      }
+    }));
+    return Array.from(marks.values()).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
   }, [entries]);
 
   const createMut = useMutation({
@@ -60,26 +68,62 @@ export default function LedgerDashboard({ settings }: Props) {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["entries"] }); setSelected(new Set()); },
   });
   const payMut = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) => updateEntry(id, { payment_status: status }),
+    mutationFn: ({ id, status }: { id: number; status: string }) => updateRowPaymentStatus(id, status as "paid" | "unpaid"),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["entries"] }),
   });
 
   const filtered = useMemo(() => {
-    return entries.filter(e => {
+    // First, filter entries based on date only
+    let result = entries.filter(e => {
       if (fromDate && e.date < fromDate) return false;
       if (toDate && e.date > toDate) return false;
-      if (payFilter !== "all" && e.payment_status !== payFilter) return false;
-      if (markFilter.size > 0) {
-        const hasMatch = (e.rows ?? []).some(r => markFilter.has(r.mark));
-        if (!hasMatch) return false;
-      }
-      if (search) {
-        const s = search.toLowerCase();
-        const hasMatch = (e.rows ?? []).some(r => r.mark?.toLowerCase().includes(s));
-        if (!hasMatch) return false;
-      }
       return true;
     });
+
+    // If any row-level filters are active (mark, search, or payment), filter rows within each entry
+    if (markFilter.size > 0 || search || payFilter !== "all") {
+      result = result.map(entry => {
+        const filterMarksLower = markFilter.size > 0
+          ? new Set(Array.from(markFilter).map(m => m.toLowerCase()))
+          : null;
+        const searchLower = search ? search.toLowerCase() : null;
+
+        // Filter rows based on all active filters
+        const filteredRows = (entry.rows ?? []).filter(r => {
+          const rowMarkLower = r.mark?.trim().toLowerCase() || "";
+          
+          // Check mark filter
+          const matchesMark = !filterMarksLower || filterMarksLower.has(rowMarkLower);
+          
+          // Check search
+          const matchesSearch = !searchLower ||
+            entry.grower_name?.toLowerCase().includes(searchLower) ||
+            entry.description?.toLowerCase().includes(searchLower) ||
+            rowMarkLower.includes(searchLower) ||
+            r.submark1?.toLowerCase().includes(searchLower) ||
+            r.submark2?.toLowerCase().includes(searchLower) ||
+            r.submark3?.toLowerCase().includes(searchLower) ||
+            r.truck_no?.toLowerCase().includes(searchLower);
+
+          // Check payment status filter (row-level)
+          const rowPayStatus = r.payment_status || "unpaid";
+          const matchesPayFilter = payFilter === "all" || rowPayStatus === payFilter;
+
+          // Row must match ALL active filters
+          let passes = true;
+          if (filterMarksLower) passes = passes && matchesMark;
+          if (searchLower) passes = passes && matchesSearch;
+          if (payFilter !== "all") passes = passes && matchesPayFilter;
+          
+          return passes;
+        });
+
+        // Return entry with filtered rows (only if it has matching rows)
+        return filteredRows.length > 0 ? { ...entry, rows: filteredRows } : null;
+      }).filter(Boolean) as LedgerEntry[];
+    }
+
+    return result;
   }, [entries, fromDate, toDate, payFilter, markFilter, search]);
 
   function toggleSelect(id: number) {
@@ -620,9 +664,14 @@ export default function LedgerDashboard({ settings }: Props) {
                           <div className="text-[10px]">{fmtINR(c.total_net_per_box, 2)}/box</div>
                         </td>
                         <td className={tdCls}>
-                          <select value={entry.payment_status}
-                            onChange={e => payMut.mutate({ id: entry.id, status: e.target.value })}
-                            className={`text-xs px-2 py-1 rounded border focus:outline-none ${entry.payment_status==="paid" ? "bg-green-50 dark:bg-green-900/40 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300" : "bg-purple-50 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300"}`}>
+                          <select value={row.payment_status || "unpaid"}
+                            onChange={e => {
+                              const newStatus = e.target.value as "paid" | "unpaid";
+                              if (row.id) {
+                                payMut.mutate({ id: row.id, status: newStatus });
+                              }
+                            }}
+                            className={`text-xs px-2 py-1 rounded border focus:outline-none ${(row.payment_status || "unpaid")==="paid" ? "bg-green-50 dark:bg-green-900/40 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300" : "bg-purple-50 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300"}`}>
                             <option value="unpaid">Unpaid</option>
                             <option value="paid">Paid</option>
                           </select>
